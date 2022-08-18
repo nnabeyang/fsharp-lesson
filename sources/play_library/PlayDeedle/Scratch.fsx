@@ -15,4 +15,4 @@ let filter (pred: ObjectSeries<string> -> bool) (df: Frame<int,string>) =
   |> Series.filterValues pred
   |> Frame.ofRows
 
-let project (cols: string[]) (df: Frame<int,string>) = df.Columns.[ cols ] 
+let project (cols: list<string>) (df: Frame<int,string>) = df.Columns.[ cols ] 
