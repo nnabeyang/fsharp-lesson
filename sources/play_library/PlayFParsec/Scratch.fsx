@@ -24,10 +24,11 @@ test pidentifier "abc"
 test pidentifier "i18n"
 test pidentifier "12"
 
-// 課題11
+// 課題14
 type Expression = 
   | ProjectExpression of string list
   | FilterExpression of col:string * value:string
+
 let pProject =
   let ws = spaces
   let str_ws s = pstring s .>> ws
@@ -38,7 +39,6 @@ let pProject =
 test pProject "project([場所],  [学年])"
 test pProject "project ([場所][学年]"
 
-// 課題13
 let pFilter =
   let ws = spaces
   let str_ws s = pstring s .>> ws
@@ -53,3 +53,7 @@ let pFilter =
 
 test pFilter "filter([専門] = \"数学\")"
 test pFilter "filter([専門] = \"数学\""
+
+let pExpression = pFilter <|> pProject
+test pExpression "filter([専門] = \"数学\")"
+test pExpression "project([場所],  [学年])"
