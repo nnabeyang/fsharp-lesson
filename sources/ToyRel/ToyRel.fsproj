@@ -9,4 +9,9 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Deedle" Version="2.5.0" />
+    <PackageReference Include="FParsec" Version="1.1.1" />
+  </ItemGroup>
+
 </Project>
