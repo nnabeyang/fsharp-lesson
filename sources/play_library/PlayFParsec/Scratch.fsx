@@ -13,3 +13,13 @@ let pColumn =
 
 test pColumn "[場所]"
 test pColumn "[]"
+
+// 課題10.1
+let pidentifier  =
+  let isIdentifierFirstChar c = isLetter c
+  let isIdentifierChar c = isLetter c || isDigit c
+  many1Satisfy2L isIdentifierFirstChar isIdentifierChar "identifier"
+
+test pidentifier "abc"
+test pidentifier "i18n"
+test pidentifier "12"
