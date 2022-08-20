@@ -1,9 +1,11 @@
 #r "nuget: FParsec"
+#r "nuget: Deedle"
 open FParsec
+open Deedle
 
 let test p str =
   match run p str with
-   | Success(result, _, _) -> printfn "Success: %A" result
+   | FParsec.CharParsers.ParserResult.Success(result, _, _) -> printfn "Success: %A" result
    | Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
 
 // 課題10
@@ -24,7 +26,7 @@ test pidentifier "abc"
 test pidentifier "i18n"
 test pidentifier "12"
 
-// 課題14
+// 課題15
 type Expression = 
   | ProjectExpression of string list
   | FilterExpression of col:string * value:string
@@ -57,3 +59,23 @@ test pFilter "filter([専門] = \"数学\""
 let pExpression = pFilter <|> pProject
 test pExpression "filter([専門] = \"数学\")"
 test pExpression "project([場所],  [学年])"
+
+let filter (pred: ObjectSeries<string> -> bool) (df: Frame<int,string>) =
+  df.RowsDense
+  |> Series.filterValues pred
+  |> Frame.ofRows
+
+let project (cols: list<string>) (df: Frame<int,string>) = df.Columns.[ cols ]
+
+let runExpr (str: string) (df: Frame<int, string>)=
+  match (run pExpression str) with
+   | FParsec.CharParsers.ParserResult.Success(result, _, _) ->
+     match result with
+       | ProjectExpression cols -> (project cols df).Print()
+       | FilterExpression (col, value) -> 
+         (filter (fun row -> row.Get(col) = value) df).Print()   
+   | Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
+
+let df = Frame.ReadCsv "../../data/シラバス.csv"
+runExpr "project([場所], [学年])" df
+runExpr "filter([専門] = \"数学\")" df
