@@ -1,5 +1,7 @@
 #r "nuget: FParsec"
+#r "nuget: Deedle"
 open FParsec
+open Deedle
 open System.Text.RegularExpressions
 
 // 課題0
@@ -36,3 +38,14 @@ Regex.IsMatch("abc+def", identifierRegexForTest)
 // 追加パターン
 Regex.IsMatch("*あかさ", identifierRegexForTest) // "_"以外の記号から始まる
 Regex.IsMatch("", identifierRegexForTest) // 空文字列
+
+// 課題2
+let distinct (df: Frame<int, string>) =
+  df.Rows.Values 
+  |> Seq.toList
+  |> Seq.distinct 
+  |> Series.ofValues 
+  |> Frame.ofRows
+
+let df = Frame.ReadCsv "./database/master/シラバス.csv"
+(distinct df.Columns.[["専門";"学年"]]).Print()
