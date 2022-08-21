@@ -1,7 +1,7 @@
 ﻿// For more information see https://aka.ms/fsharp-console-apps
 open FParsec
 open Deedle
-// 課題3
+// 課題4
 (*
 identifierの仕様
 - 1文字目数字は禁止する
@@ -33,17 +33,26 @@ type Expression =
   | Project of ProjectExpression
 and ProjectExpression = Expression * string list
 
-type Relation = Relation of Frame<int, string>
+module Relation = 
+  type T = Relation of Frame<int, string>
 
-let distinct (df: Frame<int, string>) =
-  df.Rows.Values 
-  |> Seq.toList
-  |> Seq.distinct 
-  |> Series.ofValues 
-  |> Frame.ofRows
-  |> Relation
+  let distinct (df: Frame<int, string>) =
+      df.Rows.Values 
+      |> Seq.toList
+      |> Seq.distinct 
+      |> Series.ofValues 
+      |> Frame.ofRows
+      |> Relation
+  
+  let toFrame relation =
+    let (Relation df) = relation
+    df
+  
+  let readCsv location = Frame.ReadCsv location |> distinct
 
-let readCsv location = Frame.ReadCsv location |> distinct
+  let project (cols: list<string>) (relation: T) =
+    let df = toFrame relation
+    df.Columns.[ cols ] |> distinct
 
 let pExpression, pExpressionRef = createParserForwardedToRef<Expression, unit>()
 let pProjectExpression = (str_ws "project") >>. (pExpression .>> spaces) .>>. pColumnList |>> Project
@@ -51,26 +60,21 @@ pExpressionRef.Value <-
   ((str "(") >>. (pProjectExpression <|> (pIdentifier |>> Identifier)) .>> (str ")"))
   <|> pProjectExpression
 
-let project (cols: list<string>) (relation: Relation) =
-  let (Relation df) = relation
-  df.Columns.[ cols ]
-    |> distinct
-
 let rec evalExpression expr =
   match expr with
     | Project cols -> evalProjectExpression cols
-    | Identifier name -> readCsv (sprintf "./database/master/%s.csv" name)
+    | Identifier name -> Relation.readCsv (sprintf "./database/master/%s.csv" name)
 and  evalProjectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
   let df = match ident with
     | Project _ -> evalExpression ident
-    | Identifier name -> readCsv (sprintf "./database/master/%s.csv" name)
-  project cols df
+    | Identifier name -> Relation.readCsv (sprintf "./database/master/%s.csv" name)
+  Relation.project cols df
       
 let runExpression (str: string) =
   match (run pExpression str) with
     | ParserResult.Success(expr, _, _) ->
-      let (Relation df) = (evalExpression expr)
+      let df = Relation.toFrame (evalExpression expr)
       df.Print()
     | Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
 
