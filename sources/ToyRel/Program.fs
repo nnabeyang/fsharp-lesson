@@ -1,7 +1,7 @@
 ﻿// For more information see https://aka.ms/fsharp-console-apps
 open FParsec
 open Deedle
-// 課題1
+// 課題3
 (*
 identifierの仕様
 - 1文字目数字は禁止する
@@ -33,29 +33,45 @@ type Expression =
   | Project of ProjectExpression
 and ProjectExpression = Expression * string list
 
+type Relation = Relation of Frame<int, string>
+
+let distinct (df: Frame<int, string>) =
+  df.Rows.Values 
+  |> Seq.toList
+  |> Seq.distinct 
+  |> Series.ofValues 
+  |> Frame.ofRows
+  |> Relation
+
+let readCsv location = Frame.ReadCsv location |> distinct
+
 let pExpression, pExpressionRef = createParserForwardedToRef<Expression, unit>()
 let pProjectExpression = (str_ws "project") >>. (pExpression .>> spaces) .>>. pColumnList |>> Project
 pExpressionRef.Value <- 
   ((str "(") >>. (pProjectExpression <|> (pIdentifier |>> Identifier)) .>> (str ")"))
   <|> pProjectExpression
 
-let project (cols: list<string>) (df: Frame<int,string>) = df.Columns.[ cols ]
+let project (cols: list<string>) (relation: Relation) =
+  let (Relation df) = relation
+  df.Columns.[ cols ]
+    |> distinct
 
 let rec evalExpression expr =
   match expr with
     | Project cols -> evalProjectExpression cols
-    | Identifier name -> Frame.ReadCsv (sprintf "./database/master/%s.csv" name)
+    | Identifier name -> readCsv (sprintf "./database/master/%s.csv" name)
 and  evalProjectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
-  let fd = match ident with
+  let df = match ident with
     | Project _ -> evalExpression ident
-    | Identifier name -> Frame.ReadCsv (sprintf "./database/master/%s.csv" name)
-  project cols fd
+    | Identifier name -> readCsv (sprintf "./database/master/%s.csv" name)
+  project cols df
       
 let runExpression (str: string) =
   match (run pExpression str) with
     | ParserResult.Success(expr, _, _) ->
-      (evalExpression expr).Print()
+      let (Relation df) = (evalExpression expr)
+      df.Print()
     | Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
 
 runExpression "project (シラバス) 専門, 学年, 場所"
