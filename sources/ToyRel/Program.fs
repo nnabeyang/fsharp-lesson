@@ -1,7 +1,11 @@
 ﻿// For more information see https://aka.ms/fsharp-console-apps
 open FParsec
 open Deedle
-// 課題5
+open System
+// 課題6
+let random = Random()
+let randomString (length: int) =
+  String.init length (fun _ -> char (random.Next( (int 'a'), (int 'z') + 1)) |> sprintf "%c")
 let databaseDir = "./database/master"
 (*
 identifierの仕様
@@ -88,4 +92,4 @@ runExpression "project (project (シラバス) 専門, 学年, 場所) 専門, �
 
 let df = Frame.ReadCsv "./database/master/シラバス.csv"
 let relation = Relation.distinct (df.Columns.[["学年";"場所"]])
-Relation.save relation "テスト.csv"
+Relation.save relation ("zz" + (randomString 4) + ".csv")
