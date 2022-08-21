@@ -1,5 +1,6 @@
 ﻿// For more information see https://aka.ms/fsharp-console-apps
 open FParsec
+open Deedle
 // 課題1
 (*
 identifierの仕様
@@ -12,7 +13,7 @@ let identifierRegex = sprintf "(%s)([0-9]|%s)*" firstIdentifierRegex firstIdenti
 
 let test p str =
   match run p str with
-   | Success(result, _, _) -> printfn "Success: %A" result
+   | ParserResult.Success(result, _, _) -> printfn "Success: %A" result
    | Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
 
 let str s = pstring s
@@ -29,11 +30,33 @@ let pColumnList =
 
 type Expression =
   | Identifier of string
-  | Project of Expression * string list
+  | Project of ProjectExpression
+and ProjectExpression = Expression * string list
 
 let pExpression, pExpressionRef = createParserForwardedToRef<Expression, unit>()
 let pProjectExpression = (str_ws "project") >>. (pExpression .>> spaces) .>>. pColumnList |>> Project
-pExpressionRef.Value <- (str "(") >>. (pProjectExpression <|> (pIdentifier |>> Identifier)) .>> (str ")")
+pExpressionRef.Value <- 
+  ((str "(") >>. (pProjectExpression <|> (pIdentifier |>> Identifier)) .>> (str ")"))
+  <|> pProjectExpression
 
-test pProjectExpression "project (project (シラバス) 専門, 学年, 場所) 専門, 学年"
-// => Success: Project (Project (Identifier "シラバス", ["専門"; "学年"; "場所"]), ["専門"; "学年"])
+let project (cols: list<string>) (df: Frame<int,string>) = df.Columns.[ cols ]
+
+let rec evalExpression expr =
+  match expr with
+    | Project cols -> evalProjectExpression cols
+    | Identifier name -> Frame.ReadCsv (sprintf "./database/master/%s.csv" name)
+and  evalProjectExpression (expr : ProjectExpression) =
+  let (ident, cols) = expr
+  let fd = match ident with
+    | Project _ -> evalExpression ident
+    | Identifier name -> Frame.ReadCsv (sprintf "./database/master/%s.csv" name)
+  project cols fd
+      
+let runExpression (str: string) =
+  match (run pExpression str) with
+    | ParserResult.Success(expr, _, _) ->
+      (evalExpression expr).Print()
+    | Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
+
+runExpression "project (シラバス) 専門, 学年, 場所"
+runExpression "project (project (シラバス) 専門, 学年, 場所) 専門, 学年"
