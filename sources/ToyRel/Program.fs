@@ -1,7 +1,8 @@
 ﻿// For more information see https://aka.ms/fsharp-console-apps
 open FParsec
 open Deedle
-// 課題4
+// 課題5
+let databaseDir = "./database/master"
 (*
 identifierの仕様
 - 1文字目数字は禁止する
@@ -50,6 +51,10 @@ module Relation =
   
   let readCsv location = Frame.ReadCsv location |> distinct
 
+  let save (relation: T) (basename: string) =
+        let df = toFrame relation
+        df.SaveCsv (sprintf "%s/%s" databaseDir basename)
+ 
   let project (cols: list<string>) (relation: T) =
     let df = toFrame relation
     df.Columns.[ cols ] |> distinct
@@ -80,3 +85,7 @@ let runExpression (str: string) =
 
 runExpression "project (シラバス) 専門, 学年, 場所"
 runExpression "project (project (シラバス) 専門, 学年, 場所) 専門, 学年"
+
+let df = Frame.ReadCsv "./database/master/シラバス.csv"
+let relation = Relation.distinct (df.Columns.[["学年";"場所"]])
+Relation.save relation "テスト.csv"
