@@ -49,9 +49,7 @@ module Relation =
       |> Frame.ofRows
       |> Relation
   
-  let toFrame relation =
-    let (Relation df) = relation
-    df
+  let toFrame (Relation df) = df
   
   let readCsv location = Frame.ReadCsv location |> distinct
 
