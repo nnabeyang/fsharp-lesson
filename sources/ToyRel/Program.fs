@@ -2,12 +2,12 @@
 open FParsec
 open Deedle
 open System
-// 課題6
+// 課題7
 let random = Random()
 let randomString length =
   String.init length (fun _ -> char (random.Next( (int 'a'), (int 'z') + 1)) |> sprintf "%c")
-type BaseName = BaseName of string
-let randomBaseName = "zz" + (randomString 4) |> BaseName
+type Identifier = Identifier of string
+let randomBaseName() = "zz" + (randomString 4) |> Identifier.Identifier
 let databaseDir = "./database/master"
 (*
 identifierの仕様
@@ -40,6 +40,10 @@ type Expression =
   | Project of ProjectExpression
 and ProjectExpression = Expression * string list
 
+type Statement =
+  | ExpressionStatement of Expression
+  | PrintStatement of Identifier
+
 module Relation = 
   type T = Relation of Frame<int, string>
 
@@ -55,7 +59,8 @@ module Relation =
   
   let readCsv location = Frame.ReadCsv location |> distinct
 
-  let save relation (BaseName basename) =
+  // relationを保存する。名前が衝突した場合は上書き保存する。
+  let save relation (Identifier.Identifier basename) =
         let df = toFrame relation
         df.SaveCsv (sprintf "%s/%s.csv" databaseDir basename)
  
@@ -66,30 +71,45 @@ module Relation =
 let pExpression, pExpressionRef = createParserForwardedToRef<Expression, unit>()
 let pProjectExpression = (str_ws "project") >>. (pExpression .>> spaces) .>>. pColumnList |>> Project
 pExpressionRef.Value <- 
-  ((str "(") >>. (pProjectExpression <|> (pIdentifier |>> Identifier)) .>> (str ")"))
+  ((str "(") >>. (pProjectExpression <|> (pIdentifier |>> Expression.Identifier)) .>> (str ")"))
   <|> pProjectExpression
+
+let pPrintStatement = (str_ws "print") >>. (pIdentifier |>> Identifier.Identifier |>> PrintStatement)
+let pExpressionStatement = pExpression |>> ExpressionStatement
+let pStatement = pPrintStatement <|> pExpressionStatement
 
 let rec evalExpression expr =
   match expr with
     | Project cols -> evalProjectExpression cols
-    | Identifier name -> Relation.readCsv (sprintf "./database/master/%s.csv" name)
+    | Expression.Identifier name -> Relation.readCsv (sprintf "%s/%s.csv" databaseDir name)
 and  evalProjectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
   let df = match ident with
     | Project _ -> evalExpression ident
-    | Identifier name -> Relation.readCsv (sprintf "./database/master/%s.csv" name)
+    | Expression.Identifier name -> Relation.readCsv (sprintf "%s/%s.csv" databaseDir name)
   Relation.project cols df
-      
-let runExpression (str: string) =
-  match (run pExpression str) with
-    | ParserResult.Success(expr, _, _) ->
-      let df = Relation.toFrame (evalExpression expr)
-      df.Print()
+
+let runPrint (Identifier.Identifier basename) =
+  let df =
+    Relation.readCsv (sprintf "%s/%s.csv" databaseDir basename)
+    |> Relation.toFrame
+  df.Print()
+
+let runExpression expr =
+  let baseName = randomBaseName()
+  let (Identifier.Identifier basename) = baseName
+  Relation.save (evalExpression expr) baseName
+  printfn "Relation %s returned." basename
+
+let runStatement (str: string) =
+  match (run pStatement str) with
+    | ParserResult.Success(stmt, _, _) ->
+      match stmt with
+        | ExpressionStatement expr -> runExpression expr
+        | PrintStatement ident -> runPrint ident
     | Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
 
-runExpression "project (シラバス) 専門, 学年, 場所"
-runExpression "project (project (シラバス) 専門, 学年, 場所) 専門, 学年"
-
-let df = Frame.ReadCsv "./database/master/シラバス.csv"
-let relation = Relation.distinct (df.Columns.[["学年";"場所"]])
-Relation.save relation randomBaseName
+runStatement "project (シラバス) 専門, 学年, 場所)"
+runStatement "project (project (シラバス) 専門, 学年, 場所) 専門, 学年"
+// 次の"zzahza"の部分は存在するidentに書き換える
+runStatement "print zzahza"
