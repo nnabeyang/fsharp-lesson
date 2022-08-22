@@ -6,6 +6,8 @@ open System
 let random = Random()
 let randomString length =
   String.init length (fun _ -> char (random.Next( (int 'a'), (int 'z') + 1)) |> sprintf "%c")
+type FileName = FileName of string
+let randomFileName = "zz" + (randomString 4) + ".csv" |> FileName
 let databaseDir = "./database/master"
 (*
 identifierの仕様
@@ -53,7 +55,7 @@ module Relation =
   
   let readCsv location = Frame.ReadCsv location |> distinct
 
-  let save relation basename =
+  let save relation (FileName basename) =
         let df = toFrame relation
         df.SaveCsv (sprintf "%s/%s" databaseDir basename)
  
@@ -90,4 +92,4 @@ runExpression "project (project (シラバス) 専門, 学年, 場所) 専門, �
 
 let df = Frame.ReadCsv "./database/master/シラバス.csv"
 let relation = Relation.distinct (df.Columns.[["学年";"場所"]])
-Relation.save relation ("zz" + (randomString 4) + ".csv")
+Relation.save relation randomFileName
