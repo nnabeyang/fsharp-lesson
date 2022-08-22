@@ -4,7 +4,7 @@ open Deedle
 open System
 // 課題6
 let random = Random()
-let randomString (length: int) =
+let randomString length =
   String.init length (fun _ -> char (random.Next( (int 'a'), (int 'z') + 1)) |> sprintf "%c")
 let databaseDir = "./database/master"
 (*
@@ -53,11 +53,11 @@ module Relation =
   
   let readCsv location = Frame.ReadCsv location |> distinct
 
-  let save (relation: T) (basename: string) =
+  let save relation basename =
         let df = toFrame relation
         df.SaveCsv (sprintf "%s/%s" databaseDir basename)
  
-  let project (cols: list<string>) (relation: T) =
+  let project (cols: list<string>) relation =
     let df = toFrame relation
     df.Columns.[ cols ] |> distinct
 
