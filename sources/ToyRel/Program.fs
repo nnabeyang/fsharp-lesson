@@ -60,7 +60,9 @@ module Relation =
   
   let toFrame (Relation df) = df
   
-  let readCsv location = Frame.ReadCsv location |> distinct
+  let readCsv (Identifier.Identifier basename) =
+    Frame.ReadCsv (sprintf "%s/%s.csv" databaseDir basename)
+    |> distinct
 
   // relationを保存する。名前が衝突した場合は上書き保存する。
   let save relation (Identifier.Identifier basename) =
@@ -86,7 +88,7 @@ let pStatement = pPrintStatement <|> pExpressionStatement <|> pAssignmentStateme
 let rec evalExpression expr =
   match expr with
     | Project cols -> evalProjectExpression cols
-    | Expression.Identifier name -> Relation.readCsv (sprintf "%s/%s.csv" databaseDir name)
+    | Expression.Identifier name -> Relation.readCsv (Identifier.Identifier name)
 and  evalProjectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
   let df = match ident with
@@ -94,9 +96,9 @@ and  evalProjectExpression (expr : ProjectExpression) =
     | _ -> evalExpression ident
   Relation.project cols df
 
-let runPrint (Identifier.Identifier basename) =
+let runPrint ident =
   let df =
-    Relation.readCsv (sprintf "%s/%s.csv" databaseDir basename)
+    Relation.readCsv ident
     |> Relation.toFrame
   df.Print()
 
