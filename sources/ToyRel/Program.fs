@@ -2,7 +2,9 @@
 open FParsec
 open Deedle
 open System
-// 課題8
+open System.IO
+
+// 課題9
 let random = Random()
 let randomString length =
   String.init length (fun _ -> char (random.Next( (int 'a'), (int 'z') + 1)) |> sprintf "%c")
@@ -44,6 +46,7 @@ type Statement =
   | ExpressionStatement of Expression
   | PrintStatement of Identifier
   | AssignmentStatement of Assignment
+  | ListStatement
 and
   Assignment = Identifier * Expression
 
@@ -80,10 +83,15 @@ pExpressionRef.Value <-
   <|> pProjectExpression
 
 let pPrintStatement = (str_ws "print") >>. (pIdentifier |>> Identifier.Identifier |>> PrintStatement)
+let pListStatement = str "list" |>> fun _ -> ListStatement
 let pAssignmentStatement =
   ((pIdentifier .>> spaces) |>> Identifier.Identifier) .>>. (str_ws "=" >>. pExpression) |>> AssignmentStatement
 let pExpressionStatement = pExpression |>> ExpressionStatement
-let pStatement = pPrintStatement <|> pExpressionStatement <|> pAssignmentStatement
+let pStatement = 
+  pPrintStatement
+  <|> pListStatement
+  <|> pExpressionStatement 
+  <|> pAssignmentStatement
 
 let rec evalExpression expr =
   match expr with
@@ -102,6 +110,13 @@ let runPrint ident =
     |> Relation.toFrame
   df.Print()
 
+// データベース内のリレーションの一覧を標準出力する
+let runList() =
+  let relationList = 
+    Directory.GetFiles databaseDir
+    |> Seq.map Path.GetFileNameWithoutExtension
+  printfn "%s" (relationList  |> String.concat Environment.NewLine)
+
 let runAssignment (assignment: Assignment) =
   let (ident, expr) = assignment
   let (Identifier.Identifier relationName) = ident
@@ -117,8 +132,11 @@ let runStatement (str: string) =
         | ExpressionStatement expr -> runExpression expr
         | PrintStatement ident -> runPrint ident
         | AssignmentStatement assignment -> runAssignment assignment
+        | ListStatement -> runList()
     | Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
 
+runStatement "list"
 runStatement "project (project (シラバス) 専門, 学年, 場所) 専門, 学年"
 runStatement "hoge=(シラバス)"
 runStatement "print hoge"
+runStatement "list"
