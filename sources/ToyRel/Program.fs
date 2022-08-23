@@ -2,7 +2,7 @@
 open FParsec
 open Deedle
 open System
-// 課題7
+// 課題8
 let random = Random()
 let randomString length =
   String.init length (fun _ -> char (random.Next( (int 'a'), (int 'z') + 1)) |> sprintf "%c")
@@ -43,6 +43,9 @@ and ProjectExpression = Expression * string list
 type Statement =
   | ExpressionStatement of Expression
   | PrintStatement of Identifier
+  | AssignmentStatement of Assignment
+and
+  Assignment = Identifier * Expression
 
 module Relation = 
   type T = Relation of Frame<int, string>
@@ -75,8 +78,10 @@ pExpressionRef.Value <-
   <|> pProjectExpression
 
 let pPrintStatement = (str_ws "print") >>. (pIdentifier |>> Identifier.Identifier |>> PrintStatement)
+let pAssignmentStatement =
+  ((pIdentifier .>> spaces) |>> Identifier.Identifier) .>>. (str_ws "=" >>. pExpression) |>> AssignmentStatement
 let pExpressionStatement = pExpression |>> ExpressionStatement
-let pStatement = pPrintStatement <|> pExpressionStatement
+let pStatement = pPrintStatement <|> pExpressionStatement <|> pAssignmentStatement
 
 let rec evalExpression expr =
   match expr with
@@ -95,11 +100,13 @@ let runPrint (Identifier.Identifier basename) =
     |> Relation.toFrame
   df.Print()
 
-let runExpression expr =
-  let baseName = randomBaseName()
-  let (Identifier.Identifier basename) = baseName
-  Relation.save (evalExpression expr) baseName
+let runAssignment (assignment: Assignment) =
+  let (ident, expr) = assignment
+  let (Identifier.Identifier basename) = ident
+  Relation.save (evalExpression expr) ident
   printfn "Relation %s returned." basename
+
+let runExpression expr = runAssignment (randomBaseName(), expr)
 
 let runStatement (str: string) =
   match (run pStatement str) with
@@ -107,9 +114,9 @@ let runStatement (str: string) =
       match stmt with
         | ExpressionStatement expr -> runExpression expr
         | PrintStatement ident -> runPrint ident
+        | AssignmentStatement assignment -> runAssignment assignment
     | Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
 
-runStatement "project (シラバス) 専門, 学年, 場所)"
 runStatement "project (project (シラバス) 専門, 学年, 場所) 専門, 学年"
-// 次の"zzahza"の部分は存在するidentに書き換える
-runStatement "print zzahza"
+runStatement "hoge=(シラバス)"
+runStatement "print hoge"
