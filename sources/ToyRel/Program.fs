@@ -36,7 +36,7 @@ let pColumnList =
   sepBy column_ws (str_ws ",")
 
 type Expression =
-  | Identifier of string
+  | Identifier of Identifier
   | Project of ProjectExpression
 and ProjectExpression = Expression * string list
 
@@ -76,7 +76,7 @@ module Relation =
 let pExpression, pExpressionRef = createParserForwardedToRef<Expression, unit>()
 let pProjectExpression = (str_ws "project") >>. (pExpression .>> spaces) .>>. pColumnList |>> Project
 pExpressionRef.Value <- 
-  ((str "(") >>. (pProjectExpression <|> (pIdentifier |>> Expression.Identifier)) .>> (str ")"))
+  ((str "(") >>. (pProjectExpression <|> (pIdentifier |>> Identifier.Identifier |>> Expression.Identifier)) .>> (str ")"))
   <|> pProjectExpression
 
 let pPrintStatement = (str_ws "print") >>. (pIdentifier |>> Identifier.Identifier |>> PrintStatement)
@@ -88,7 +88,7 @@ let pStatement = pPrintStatement <|> pExpressionStatement <|> pAssignmentStateme
 let rec evalExpression expr =
   match expr with
     | Project cols -> evalProjectExpression cols
-    | Expression.Identifier name -> Relation.readCsv (Identifier.Identifier name)
+    | Expression.Identifier basename -> Relation.readCsv basename
 and  evalProjectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
   let df = match ident with
