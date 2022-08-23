@@ -91,7 +91,7 @@ and  evalProjectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
   let df = match ident with
     | Project _ -> evalExpression ident
-    | Expression.Identifier name -> Relation.readCsv (sprintf "%s/%s.csv" databaseDir name)
+    | _ -> evalExpression ident
   Relation.project cols df
 
 let runPrint (Identifier.Identifier basename) =
