@@ -104,9 +104,9 @@ let runPrint ident =
 
 let runAssignment (assignment: Assignment) =
   let (ident, expr) = assignment
-  let (Identifier.Identifier basename) = ident
+  let (Identifier.Identifier relationName) = ident
   Relation.save (evalExpression expr) ident
-  printfn "Relation %s returned." basename
+  printfn "Relation %s returned." relationName
 
 let runExpression expr = runAssignment (randomBaseName(), expr)
 
