@@ -38,9 +38,8 @@ let listStatement() =
 // 指定した名称で式を評価して得たRelationを保存する
 let assignmentStatement (assign: Assignment) =
   let (ident, expr) = assign
-  let (Identifier.Identifier relationName) = ident
   Relation.save (expression expr) ident
-  printfn "Relation %s returned." relationName
+  ident
 
 // ランダムな名称で式を評価して得たRelationを保存する
 let expressionStatement expr = assignmentStatement (randomBaseName(), expr)
@@ -48,7 +47,13 @@ let expressionStatement expr = assignmentStatement (randomBaseName(), expr)
 // Statementを評価する
 let evalStatement stmt =
   match stmt with
-    | ExpressionStatement expr -> expressionStatement expr
-    | PrintStatement ident -> printStatement ident
-    | AssignmentStatement assignment -> assignmentStatement assignment
-    | ListStatement -> listStatement()
+    | PrintStatement ident ->
+      printStatement ident
+      None
+    | ExpressionStatement expr ->
+      Some (expressionStatement expr)
+    | AssignmentStatement assignment -> 
+      Some (assignmentStatement assignment)
+    | ListStatement ->
+      listStatement()
+      None

@@ -6,7 +6,11 @@ open Eval
 // コードをparseして得たStatementを評価する
 let run src =
   match (run pStatement src) with
-    | Success(stmt, _, _) -> evalStatement stmt
+    | Success(stmt, _, _) ->
+      match (evalStatement stmt) with
+        | Some (Common.Identifier relationName) ->
+          printfn "Relation %s returned." relationName
+        | None -> ()        
     | Failure(errorMsg, _, _) -> failwithf "Failure: %s" errorMsg
 
 run "list"
