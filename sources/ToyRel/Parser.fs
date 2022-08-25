@@ -38,8 +38,3 @@ let pStatement =
   <|> pListStatement
   <|> pExpressionStatement 
   <|> pAssignmentStatement
-
-let parse src = 
-  match (run pStatement src) with
-    | Success(stmt, _, _) -> stmt
-    | Failure(errorMsg, _, _) -> failwithf "Failure: %s" errorMsg
