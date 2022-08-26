@@ -1,6 +1,7 @@
 module Common
 
 type Identifier = Identifier of string
+type Database = Database of string
 
 type Expression =
   | Identifier of Identifier
@@ -12,7 +13,9 @@ type Statement =
   | PrintStatement of Identifier
   | AssignmentStatement of Assignment
   | ListStatement
+  | UseStatement of Database
 and
   Assignment = Identifier * Expression
 
-let databaseDir = "./database/master"
+let databaseBaseDir = "./database"
+let database = ref (Database "master")

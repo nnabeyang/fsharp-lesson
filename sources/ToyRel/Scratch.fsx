@@ -71,3 +71,20 @@ run "hoge=(Employee)"
 run "abc=(project (project (Employee) Name, DeptName) DeptName)"
 run "print hoge"
 run "print abc"
+
+// wikipediaデータベースのデータで、Employeeの名前の一覧を表示してみましょう。
+run "use master"
+run "q1 = (project (Employee) Name)"
+run "print q1"
+// tandp.mdの図書館データベースについて、この図書館に所蔵されている本の著者の一覧を表示しましょう。
+run "use tandp"
+run "q2 = (project (book) author)"
+run "print q2"
+// tandp.mdの在庫管理データベースについて、商品を作っている生産者の一覧を表示しましょう。
+run "use tandp"
+run "q3 = (project (goods) producer)"
+run "print q3"
+// tandp.mdの在庫管理データベースについて、どこかの支社に一度でも配送したことなる生産者の一覧を表示しましょう。
+run "use tandp"
+run "q3 = (project (delivery) producer)"
+run "print q3"

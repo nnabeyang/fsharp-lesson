@@ -28,6 +28,7 @@ pExpressionRef.Value <-
   ((str "(") >>. (pProjectExpression <|> (pIdentifier |>> Identifier.Identifier |>> Expression.Identifier)) .>> (str ")"))
   <|> pProjectExpression
 
+let pUseStatement = (str_ws "use") >>. (pIdentifier |>> Database.Database |>> UseStatement)
 let pPrintStatement = (str_ws "print") >>. (pIdentifier |>> Identifier.Identifier |>> PrintStatement)
 let pListStatement = str "list" |>> fun _ -> ListStatement
 let pAssignmentStatement =
@@ -35,6 +36,7 @@ let pAssignmentStatement =
 let pExpressionStatement = pExpression |>> ExpressionStatement
 let pStatement =
   pPrintStatement
+  <|> pUseStatement
   <|> pListStatement
   <|> pExpressionStatement 
   <|> pAssignmentStatement

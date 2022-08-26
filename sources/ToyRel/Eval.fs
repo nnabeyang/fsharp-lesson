@@ -27,11 +27,13 @@ let printStatement ident =
     Relation.readCsv ident
     |> Relation.toFrame
   df.Print()
-
 // データベース内のRelationの一覧を標準出力する
 let listStatement() =
-  let relationList = 
+  let (Database databaseName) = database.Value
+  let databaseDir = sprintf "%s/%s" databaseBaseDir databaseName
+  let relationList =
     Directory.GetFiles databaseDir
+    |> fun paths -> Seq.filter (fun (path: string) -> (Path.GetExtension path) = ".csv") paths
     |> Seq.map Path.GetFileNameWithoutExtension
   printfn "%s" (relationList  |> String.concat Environment.NewLine)
 
@@ -44,6 +46,9 @@ let assignmentStatement (assign: Assignment) =
 // ランダムな名称で式を評価して得たRelationを保存する
 let expressionStatement expr = assignmentStatement (randomBaseName(), expr)
 
+let useStatement newValue =
+  database.Value <- newValue
+  
 // Statementを評価する
 let evalStatement stmt =
   match stmt with
@@ -56,4 +61,7 @@ let evalStatement stmt =
       Some (assignmentStatement assignment)
     | ListStatement ->
       listStatement()
+      None
+    | UseStatement database ->
+      useStatement database
       None
