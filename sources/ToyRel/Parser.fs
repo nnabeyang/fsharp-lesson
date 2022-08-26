@@ -38,3 +38,5 @@ let pStatement =
   <|> pListStatement
   <|> pExpressionStatement 
   <|> pAssignmentStatement
+
+let pQuit: Parser<string, unit> = str "quit"
