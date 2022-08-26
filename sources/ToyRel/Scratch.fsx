@@ -1,8 +1,15 @@
 #r "nuget: FParsec"
 #r "nuget: Deedle"
-open FParsec
+#load "Common.fs"
+#load "Relation.fs"
+#load "Parser.fs"
+#load "Eval.fs"
 open Deedle
 open System.Text.RegularExpressions
+open Common
+open Parser
+open Eval
+
 
 // 課題0
 (*
@@ -49,3 +56,18 @@ let distinct (df: Frame<int, string>) =
 
 let df = Frame.ReadCsv "./database/master/シラバス.csv"
 (distinct df.Columns.[["専門";"学年"]]).Print()
+
+let run src =
+  match (FParsec.CharParsers.run pStatement src) with
+    | FParsec.CharParsers.ParserResult.Success(stmt, _, _) ->
+      match (evalStatement stmt) with
+        | Some (Common.Identifier relationName) ->
+          printfn "Relation %s returned." relationName
+        | None -> ()        
+    | FParsec.CharParsers.ParserResult.Failure(errorMsg, _, _) -> failwithf "Failure: %s" errorMsg
+
+run "list"
+run "hoge=(Employee)"
+run "abc=(project (project (Employee) Name, DeptName) DeptName)"
+run "print hoge"
+run "print abc"
