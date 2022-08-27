@@ -13,10 +13,14 @@ let randomBaseName() = "zz" + (randomString 4) |> Identifier.Identifier
 let rec expression expr =
   match expr with
     | Project cols -> projectExpression cols
+    | Difference binaryExpr -> differenceExpression binaryExpr
     | Expression.Identifier basename -> Relation.readCsv basename
 and  projectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
   Relation.project cols (expression ident)
+and differenceExpression (binaryExpr: BinaryExpression) =
+  let (left, right) = binaryExpr
+  Relation.difference (expression left) (expression right)
 
 // 指定したRelationの内容を標準出力する
 let printStatement ident =
@@ -36,6 +40,7 @@ let assignmentStatement (assign: Assignment) =
 // ランダムな名称で式を評価して得たRelationを保存する
 let expressionStatement expr = assignmentStatement (randomBaseName(), expr)
 
+// 使用するDatabaseの切り替え
 let useStatement newValue =
   database.Value <- newValue
   

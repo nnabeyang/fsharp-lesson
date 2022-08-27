@@ -2,6 +2,7 @@ module Relation
 open Common
 open Deedle
 open System.IO
+open System.Collections.Generic
 
 module Relation = 
   type T = Relation of Frame<int, string>
@@ -35,3 +36,25 @@ module Relation =
   let list() =
     grab (databasePath database.Value (Identifier.Identifier "*"))
     |> Seq.map Path.GetFileNameWithoutExtension
+
+  let checkColTypes (Relation df1) (Relation df2) =
+    let cts1 = df1.ColumnTypes |> Seq.toList
+    let cts2 = df2.ColumnTypes |> Seq.toList
+    cts1 = cts2
+  let checkColKeyNames (Relation df1) (Relation df2) =
+    let keys1 = df1.ColumnKeys |> Seq.toList
+    let keys2 = df2.ColumnKeys |> Seq.toList
+    keys1 = keys2
+  let difference (rel1: T) (rel2: T) =
+    if not (checkColTypes rel1 rel2) then
+      failwith "column types do not match"
+    if not (checkColKeyNames rel1 rel2) then
+      failwith "column names do not match"
+    let (Relation df2) = rel2
+    let (Relation df1) = rel1
+    let valueSet = df2.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
+    df1.Rows.Values
+      |> Seq.filter (fun s -> not (valueSet.Contains s))
+      |> Series.ofValues
+      |> Frame.ofRows
+      |> Relation

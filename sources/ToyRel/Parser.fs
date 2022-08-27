@@ -22,11 +22,16 @@ let pColumnList =
   let column_ws = pColumn .>> spaces
   sepBy column_ws (str_ws ",")
 
-let pExpression, pExpressionRef = createParserForwardedToRef<Expression, unit>()
-let pProjectExpression = (str_ws "project") >>. (pExpression .>> spaces) .>>. pColumnList |>> Project
-pExpressionRef.Value <- 
-  ((str "(") >>. (pProjectExpression <|> (pIdentifier |>> Identifier.Identifier |>> Expression.Identifier)) .>> (str ")"))
-  <|> pProjectExpression
+let pTerm, pTermRef = createParserForwardedToRef<Expression, unit>()
+let pProjectExpression = (str_ws "project") >>. (pTerm .>> spaces) .>>. pColumnList |>> Project
+let pIdentifierExpression = pIdentifier |>> Identifier.Identifier |>> Expression.Identifier
+let pTermExpression = pProjectExpression <|> pIdentifierExpression
+pTermRef.Value <- between (str_ws "(") (str_ws ")")  pTermExpression <|> pProjectExpression
+
+let opp = new OperatorPrecedenceParser<Expression, unit, unit>()
+let pExpression = opp.ExpressionParser
+opp.TermParser <- pTerm
+opp.AddOperator(InfixOperator("difference", spaces, 1, Associativity.Left, fun x y -> Difference (x,y)))
 
 let pUseStatement = (str_ws "use") >>. (pIdentifier |>> Database.Database |>> UseStatement)
 let pPrintStatement = (str_ws "print") >>. (pIdentifier |>> Identifier.Identifier |>> PrintStatement)
