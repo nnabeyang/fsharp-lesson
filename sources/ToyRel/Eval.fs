@@ -16,10 +16,7 @@ let rec expression expr =
     | Expression.Identifier basename -> Relation.readCsv basename
 and  projectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
-  let df = match ident with
-    | Project _ -> expression ident
-    | _ -> expression ident
-  Relation.project cols df
+  Relation.project cols (expression ident)
 
 // 指定したRelationの内容を標準出力する
 let printStatement ident =
