@@ -25,14 +25,7 @@ let printStatement ident =
     |> Relation.toFrame
   df.Print()
 // データベース内のRelationの一覧を標準出力する
-let listStatement() =
-  let (Database databaseName) = database.Value
-  let databaseDir = sprintf "%s/%s" databaseBaseDir databaseName
-  let relationList =
-    Directory.GetFiles databaseDir
-    |> fun paths -> Seq.filter (fun (path: string) -> (Path.GetExtension path) = ".csv") paths
-    |> Seq.map Path.GetFileNameWithoutExtension
-  printfn "%s" (relationList  |> String.concat Environment.NewLine)
+let listStatement() = printfn "%s" (Relation.list() |> String.concat Environment.NewLine)
 
 // 指定した名称で式を評価して得たRelationを保存する
 let assignmentStatement (assign: Assignment) =
