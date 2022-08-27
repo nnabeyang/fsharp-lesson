@@ -2,7 +2,6 @@ module Eval
 open Common
 open Deedle
 open System
-open System.IO
 open Relation
 
 let random = Random()
