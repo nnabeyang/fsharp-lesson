@@ -18,28 +18,20 @@ let rec expression expr =
   match expr with
     | Project cols -> projectExpression cols
     | Difference binaryExpr -> differenceExpression binaryExpr
-    | Expression.Identifier basename -> Relation.Success(Relation.readCsv basename)
+    | Identifier basename -> Relation.load basename
 and  projectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
   let result = expression ident
   match result with
-    | Relation.Success relation -> Relation.Success (Relation.project cols relation)
-    | Relation.Failure _ -> result
+    | Result.Ok relation -> Relation.project cols relation
+    | Result.Error _ -> result
 and differenceExpression (binaryExpr: BinaryExpression) =
   let (left, right) = binaryExpr
-  let leftResult = expression left
-  let rightResult = expression right
-  match (leftResult, rightResult) with
-    | (Relation.Success l, Relation.Success r) -> Relation.difference l r
-    | (Relation.Failure _, _) -> leftResult
-    | _ -> rightResult
+  Relation.difference (expression left) (expression right)
 
 // 指定したRelationの内容を標準出力する
 let printStatement ident =
-  let df =
-    Relation.readCsv ident
-    |> Relation.toFrame
-  df.Print()
+  Relation.print ident
   Nothing
 // データベース内のRelationの一覧を標準出力する
 let listStatement() =
@@ -49,12 +41,11 @@ let listStatement() =
 // 指定した名称で式を評価して得たRelationを保存する
 let assignmentStatement (assign: Assignment) =
   let (ident, expr) = assign
-  let result = expression expr
-  match result with
-    | Relation.Success relation ->
+  match (expression expr) with
+    | Result.Ok relation ->
       Relation.save relation  ident
       Creation ident
-    | Relation.Failure errMsg -> Failure errMsg
+    | Result.Error (Relation.DifferenceError errorMsg) -> Failure errorMsg
 
 // ランダムな名称で式を評価して得たRelationを保存する
 let expressionStatement expr = assignmentStatement (randomBaseName(), expr)
