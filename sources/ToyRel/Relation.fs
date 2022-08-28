@@ -72,7 +72,4 @@ module Relation =
         |> Result.Ok
 
   let difference (left: Result<T, DifferenceError>) (right: Result<T, DifferenceError>) =
-    match (left, right) with
-      | (Ok l, Ok r) -> takeDifference l r
-      | (Result.Error _, _) -> left
-      | _ -> right
+    left |> Result.bind (fun l -> right |> Result.bind (takeDifference l))

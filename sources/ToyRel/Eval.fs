@@ -21,10 +21,7 @@ let rec expression expr =
     | Identifier basename -> Relation.load basename
 and  projectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
-  let result = expression ident
-  match result with
-    | Result.Ok relation -> Relation.project cols relation
-    | Result.Error _ -> result
+  expression ident |> Result.bind (Relation.project cols)
 and differenceExpression (binaryExpr: BinaryExpression) =
   let (left, right) = binaryExpr
   Relation.difference (expression left) (expression right)
