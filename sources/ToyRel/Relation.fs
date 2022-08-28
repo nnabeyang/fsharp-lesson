@@ -6,6 +6,9 @@ open System.Collections.Generic
 
 module Relation = 
   type T = Relation of Frame<int, string>
+  type Result =
+    | Success of T
+    | Failure of string
 
   // Frameから重複を除いてRelationを作る
   let distinct (df: Frame<int, string>) =
@@ -47,14 +50,16 @@ module Relation =
     keys1 = keys2
   let difference (rel1: T) (rel2: T) =
     if not (checkColTypes rel1 rel2) then
-      failwith "column types do not match"
-    if not (checkColKeyNames rel1 rel2) then
-      failwith "column names do not match"
-    let (Relation df2) = rel2
-    let (Relation df1) = rel1
-    let valueSet = df2.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
-    df1.Rows.Values
-      |> Seq.filter (fun s -> not (valueSet.Contains s))
-      |> Series.ofValues
-      |> Frame.ofRows
-      |> Relation
+      Failure "column types do not match"
+    else if not (checkColKeyNames rel1 rel2) then
+      Failure "column names do not match"
+    else
+      let (Relation df2) = rel2
+      let (Relation df1) = rel1
+      let valueSet = df2.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
+      df1.Rows.Values
+        |> Seq.filter (fun s -> not (valueSet.Contains s))
+        |> Series.ofValues
+        |> Frame.ofRows
+        |> Relation
+        |> Success

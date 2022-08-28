@@ -9,12 +9,15 @@ open System
 // コードをparseして得たStatementを評価する
 let runStatement src =
   match (run pStatement src) with
-    | Success(stmt, _, _) ->
+    | CharParsers.Success(stmt, _, _) ->
       match (evalStatement stmt) with
-        | Some (Common.Identifier relationName) ->
-          printfn "Relation %s returned." relationName
-        | None -> ()        
-    | Failure(errorMsg, _, _) -> failwithf "Failure: %s" errorMsg
+        | Success ident ->
+          match ident with
+            | Some (Common.Identifier relationName) ->
+              printfn "Relation %s returned." relationName
+            | None -> ()
+        | Failure errorMsg -> printfn "Failure: %s" errorMsg        
+    | CharParsers.Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
 
 let lineEditor = LineEditor()
 lineEditor.KeyBindings.Add<PreviousHistoryCommand>(ConsoleKey.P, ConsoleModifiers.Control)
@@ -24,8 +27,8 @@ lineEditor.Prompt <- LineEditorPrompt(">", ".")
 let rec repl() =
   let line = lineEditor.ReadLine(System.Threading.CancellationToken.None).Result
   match (run pQuit line) with
-    | Success _ -> ()
-    | Failure _ ->
+    | CharParsers.Success _ -> ()
+    | CharParsers.Failure _ ->
       runStatement line
       repl()
 
