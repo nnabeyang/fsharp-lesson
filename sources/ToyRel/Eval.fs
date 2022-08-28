@@ -9,6 +9,13 @@ type Result =
   | Nothing
   | Failure of string
 
+let print result =
+  match result with
+    | Creation (Common.Identifier relationName) ->
+      printfn "Relation %s returned." relationName
+    | Failure errorMsg -> printfn "Failure: %s" errorMsg        
+    | Nothing -> ()
+
 let random = Random()
 let randomString length =
   String.init length (fun _ -> char (random.Next( (int 'a'), (int 'z') + 1)) |> sprintf "%c")
