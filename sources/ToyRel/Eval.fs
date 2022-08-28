@@ -5,7 +5,8 @@ open System
 open Relation
 
 type Result =
-  | Success of Identifier option
+  | Creation of Identifier
+  | Nothing
   | Failure of string
 
 let random = Random()
@@ -39,11 +40,11 @@ let printStatement ident =
     Relation.readCsv ident
     |> Relation.toFrame
   df.Print()
-  Success None
+  Nothing
 // データベース内のRelationの一覧を標準出力する
 let listStatement() =
   printfn "%s" (Relation.list() |> String.concat Environment.NewLine)
-  Success None
+  Nothing
 
 // 指定した名称で式を評価して得たRelationを保存する
 let assignmentStatement (assign: Assignment) =
@@ -52,7 +53,7 @@ let assignmentStatement (assign: Assignment) =
   match result with
     | Relation.Success relation ->
       Relation.save relation  ident
-      Success (Some ident)
+      Creation ident
     | Relation.Failure errMsg -> Failure errMsg
 
 // ランダムな名称で式を評価して得たRelationを保存する
@@ -61,7 +62,7 @@ let expressionStatement expr = assignmentStatement (randomBaseName(), expr)
 // 使用するDatabaseの切り替え
 let useStatement newValue =
   database.Value <- newValue
-  Success None
+  Nothing
   
 // Statementを評価する
 let evalStatement stmt =

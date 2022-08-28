@@ -11,12 +11,10 @@ let runStatement src =
   match (run pStatement src) with
     | CharParsers.Success(stmt, _, _) ->
       match (evalStatement stmt) with
-        | Success ident ->
-          match ident with
-            | Some (Common.Identifier relationName) ->
+        | Creation (Common.Identifier relationName) ->
               printfn "Relation %s returned." relationName
-            | None -> ()
         | Failure errorMsg -> printfn "Failure: %s" errorMsg        
+        | Nothing -> ()
     | CharParsers.Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
 
 let lineEditor = LineEditor()
