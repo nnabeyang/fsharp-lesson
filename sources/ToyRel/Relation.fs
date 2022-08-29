@@ -1,19 +1,12 @@
 module Relation
 open Common
+open MyResult
 open Deedle
 open System.IO
 open System.Collections.Generic
 
-type ResultBuilder() =
-  member this.Return(value: 'ok): Result<'ok, 'error> = Ok value
-  member this.Bind(
-    input: Result<'okInput, 'error>,
-    binder: 'okInput -> Result<'okOutput, 'error>
-  ): Result<'okOutput, 'error> = Result.bind binder input
-
 module Relation =
-  type T = Relation of Frame<int, string>
-  let result = ResultBuilder()
+  type T = Relation of Frame<int, string>  
   type DifferenceError = DifferenceError of string 
   // Frameから重複を除いてRelationを作る
   let distinct (df: Frame<int, string>) =
@@ -31,7 +24,7 @@ module Relation =
     |> distinct
   
   // Relationをロードする
-  let load ident = readCsv ident |> Result.Ok
+  let load ident = readCsv ident |> MyResult.Ok
   
   // Relationを保存する。名前が衝突した場合は上書き保存する。  
   let save relation ident =
@@ -41,7 +34,7 @@ module Relation =
   // Relationからcolsで指定したカラムだけ残したRelationを新たに作る
   let project (cols: list<string>) relation =
     let df = toFrame relation
-    df.Columns.[ cols ] |> distinct |> Result.Ok
+    df.Columns.[ cols ] |> distinct |> MyResult.Ok
 
   // 現在のDatabaseのRelation名一覧を返す
   let list() =
@@ -65,9 +58,9 @@ module Relation =
   
   let takeDifference rel1 rel2 =
     if not (checkColTypes rel1 rel2) then
-      Result.Error (DifferenceError "column types do not match")
+      MyResult.Error (DifferenceError "column types do not match")
     else if not (checkColKeyNames rel1 rel2) then
-      Result.Error (DifferenceError "column names do not match")
+      MyResult.Error (DifferenceError "column names do not match")
     else
       let (Relation df2) = rel2
       let (Relation df1) = rel1
@@ -77,9 +70,9 @@ module Relation =
         |> Series.ofValues
         |> Frame.ofRows
         |> Relation
-        |> Result.Ok
+        |> MyResult.Ok
 
-  let difference (left: Result<T, DifferenceError>) (right: Result<T, DifferenceError>) = result {
+  let difference (left: MyResult<T, DifferenceError>) (right: MyResult<T, DifferenceError>) = MyResult.result {
     let! l = left
     let! r = right
     let! d = takeDifference l r

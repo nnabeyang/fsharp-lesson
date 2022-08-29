@@ -2,6 +2,7 @@ module Eval
 open Common
 open Deedle
 open System
+open MyResult
 open Relation
 
 type Result =
@@ -28,7 +29,7 @@ let rec expression expr =
     | Identifier basename -> Relation.load basename
 and  projectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
-  expression ident |> Result.bind (Relation.project cols)
+  expression ident |> MyResult.bind (Relation.project cols)
 and differenceExpression (binaryExpr: BinaryExpression) =
   let (left, right) = binaryExpr
   Relation.difference (expression left) (expression right)
@@ -46,10 +47,10 @@ let listStatement() =
 let assignmentStatement (assign: Assignment) =
   let (ident, expr) = assign
   match (expression expr) with
-    | Result.Ok relation ->
+    | MyResult.Ok relation ->
       Relation.save relation  ident
       Creation ident
-    | Result.Error (Relation.DifferenceError errorMsg) -> Failure errorMsg
+    | MyResult.Error (Relation.DifferenceError errorMsg) -> Failure errorMsg
 
 // ランダムな名称で式を評価して得たRelationを保存する
 let expressionStatement expr = assignmentStatement (randomBaseName(), expr)
