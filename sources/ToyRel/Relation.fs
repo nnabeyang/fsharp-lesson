@@ -4,8 +4,16 @@ open Deedle
 open System.IO
 open System.Collections.Generic
 
-module Relation = 
+type ResultBuilder() =
+  member this.Return(value: 'ok): Result<'ok, 'error> = Ok value
+  member this.Bind(
+    input: Result<'okInput, 'error>,
+    binder: 'okInput -> Result<'okOutput, 'error>
+  ): Result<'okOutput, 'error> = Result.bind binder input
+
+module Relation =
   type T = Relation of Frame<int, string>
+  let result = ResultBuilder()
   type DifferenceError = DifferenceError of string 
   // Frameから重複を除いてRelationを作る
   let distinct (df: Frame<int, string>) =
@@ -71,5 +79,9 @@ module Relation =
         |> Relation
         |> Result.Ok
 
-  let difference (left: Result<T, DifferenceError>) (right: Result<T, DifferenceError>) =
-    left |> Result.bind (fun l -> right |> Result.bind (takeDifference l))
+  let difference (left: Result<T, DifferenceError>) (right: Result<T, DifferenceError>) = result {
+    let! l = left
+    let! r = right
+    let! d = takeDifference l r
+    return d
+  }
