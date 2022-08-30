@@ -2,6 +2,7 @@
 #r "nuget: Deedle"
 open FParsec
 #load "Common.fs"
+#load "MyResult.fs"
 #load "Relation.fs"
 #load "Parser.fs"
 #load "Eval.fs"
@@ -11,16 +12,12 @@ open Eval
 let test p str =
   match run p str with
    | ParserResult.Success(result, _, _) -> printfn "Success: %A" result
-   | Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
+   | ParserResult.Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
 
 let run src =
   match (run pStatement src) with
-    | Success(stmt, _, _) ->
-      match (evalStatement stmt) with
-        | Some (Common.Identifier relationName) ->
-          printfn "Relation %s returned." relationName
-        | None -> ()        
-    | Failure(errorMsg, _, _) -> failwithf "Failure: %s" errorMsg
+    | ParserResult.Success(stmt, _, _) -> Eval.print (evalStatement stmt)
+    | ParserResult.Failure(errorMsg, _, _) -> failwithf "Failure: %s" errorMsg
 
 
 test pStatement "list"
