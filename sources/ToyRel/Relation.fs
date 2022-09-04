@@ -7,7 +7,7 @@ open System.Collections.Generic
 
 module Relation =
   type T = Relation of Frame<int, string>  
-  type DifferenceError = DifferenceError of string 
+
   // Frameから重複を除いてRelationを作る
   let distinct (df: Frame<int, string>) =
       df.Rows.Values 
@@ -58,9 +58,9 @@ module Relation =
   
   let takeDifference rel1 rel2 =
     if not (checkColTypes rel1 rel2) then
-      MyResult.Error (DifferenceError "column types do not match")
+      MyResult.Error (TypeError "column types do not match")
     else if not (checkColKeyNames rel1 rel2) then
-      MyResult.Error (DifferenceError "column names do not match")
+      MyResult.Error (EvalError "column names do not match")
     else
       let (Relation df2) = rel2
       let (Relation df1) = rel1
@@ -72,9 +72,16 @@ module Relation =
         |> Relation
         |> MyResult.Ok
 
-  let difference (left: MyResult<T, DifferenceError>) (right: MyResult<T, DifferenceError>) = MyResult.result {
+  let difference left right = MyResult.result {
     let! l = left
     let! r = right
     let! d = takeDifference l r
     return d
   }
+
+  let restrict rel (Filter f) =
+    let df = toFrame rel
+    df.RowsDense
+      |> Series.filterValues(f)
+      |> Frame.ofRows
+      |> Relation

@@ -1,9 +1,9 @@
 module Eval
 open Common
-open Deedle
 open System
 open MyResult
 open Relation
+open Condition
 
 type Result =
   | Creation of Identifier
@@ -25,6 +25,7 @@ let randomBaseName() = "zz" + (randomString 4) |> Identifier.Identifier
 let rec expression expr =
   match expr with
     | Project cols -> projectExpression cols
+    | Restrict (expr, cond) -> restrictExpression expr cond
     | Difference binaryExpr -> differenceExpression binaryExpr
     | Identifier basename -> Relation.load basename
 and  projectExpression (expr : ProjectExpression) =
@@ -33,6 +34,13 @@ and  projectExpression (expr : ProjectExpression) =
 and differenceExpression (binaryExpr: BinaryExpression) =
   let (left, right) = binaryExpr
   Relation.difference (expression left) (expression right)
+and restrictExpression expr cond =
+  match (expression expr) with
+    | MyResult.Ok rel ->
+      match Condition.condition rel cond with
+        | MyResult.Ok f -> Relation.restrict rel f |> MyResult.Ok
+        | MyResult.Error e -> MyResult.Error e
+    | MyResult.Error e -> MyResult.Error e
 
 // 指定したRelationの内容を標準出力する
 let printStatement ident =
@@ -50,7 +58,10 @@ let assignmentStatement (assign: Assignment) =
     | MyResult.Ok relation ->
       Relation.save relation  ident
       Creation ident
-    | MyResult.Error (Relation.DifferenceError errorMsg) -> Failure errorMsg
+    | MyResult.Error err -> 
+      match err with
+        | TypeError errorMsg -> Failure (sprintf "TypeError: %s" errorMsg)
+        | EvalError errorMsg -> Failure (sprintf "EvalError: %s" errorMsg)
 
 // ランダムな名称で式を評価して得たRelationを保存する
 let expressionStatement expr = assignmentStatement (randomBaseName(), expr)
