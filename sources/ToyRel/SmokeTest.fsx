@@ -144,12 +144,12 @@ run "print q15_2"
 // 条件式がカラムの値がboolにキャストできない場合
 run "use tandp"
 run "res = restrict (auction) (date_bought)"
-// Failure: TypeError: Unable to cast object of type 'System.String' to type 'System.Boolean'.
+//Failure: TypeError: string value is not a conditional expression.
 
 // 条件式にbool以外のリテラルになっている場合
 run "use tandp"
 run "res = restrict (auction) (\"hello\")"
-//Failure: TypeError: Unable to cast object of type 'System.String' to type 'System.Boolean'.
+//Failure: TypeError: string value is not a conditional expression.
 
 // 条件式の型が違う場合(cell_priceは整数)
 run "use tandp"

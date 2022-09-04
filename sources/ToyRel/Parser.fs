@@ -21,11 +21,12 @@ let pColumn = pIdentifier <|> pSBracketColumn
 let pColumnList =
   let column_ws = pColumn .>> spaces
   sepBy column_ws (str_ws ",")
-let pInt = (regex "[\-\+]?[0-9]+") |>> int |>> fun x -> x :> obj
-let pBool = (str "true" <|> str "false") |>> (fun x -> x = "true" :> obj)
+let pInt = (regex "[\-\+]?[0-9]+") |>> int |>> (fun x -> x) |>> IntLiteral
+let pBool = (str "true" <|> str "false") |>> (fun x -> x = "true") |>> BoolLiteral
 let pCondStr =
     let normalChar = satisfy (fun c -> c <> '\"')
-    between (pstring "\"") (pstring "\"") (many1Chars normalChar) |>> (fun x -> x :> obj)
+    between (pstring "\"") (pstring "\"") (many1Chars normalChar)
+    |>> StrLiteral
 let pCondOprand: Parser<ConditionalExpression, unit> =
   (
     (pInt  <|> pCondStr <|> pBool) |>> Literal
