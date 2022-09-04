@@ -4,28 +4,6 @@ open Deedle
 open MyResult
 open Relation
 
-let getTypeByColName rel name =
-  let df = Relation.toFrame rel
-  let types = df.ColumnTypes |> Seq.toList
-  try
-    let idx = df.ColumnKeys |> Seq.findIndex (fun key -> key = name)
-    types[idx] |> MyResult.Ok
-  with
-    | :? System.Collections.Generic.KeyNotFoundException -> MyResult.Error (EvalError "column name is wrong")
-
-let getType rel cond =
-  match cond with
-    | Value value ->
-      match value with
-        | Literal literal ->
-          match literal with
-            | StrLiteral _ -> typeof<string>
-            | IntLiteral _ -> typeof<int>
-            | BoolLiteral _ -> typeof<bool>
-          |> MyResult.Ok 
-        | ColumnName name -> getTypeByColName rel name
-    | Function _ -> typeof<bool> |> MyResult.Ok
-
 let compare op left right =
   let (RowFunc l) = left
   let (RowFunc r) = right
@@ -56,7 +34,7 @@ and value rel expr =
         |> RowFunc
         |> MyResult.Ok
       | ColumnName name -> MyResult.result {
-        let! t = getTypeByColName rel name
+        let! t = Relation.getTypeByColName rel name
         let! f = match t with
                   | p when p = typeof<string> -> fun (row: ObjectSeries<string>) -> (row.GetAs<string>(name) |> StrLiteral)
                   | p when p = typeof<int> -> fun (row: ObjectSeries<string>) -> (row.GetAs<int>(name) |> IntLiteral)
@@ -69,8 +47,8 @@ and value rel expr =
   with
     | ToyRelTypeException errorMsg -> MyResult.Error (TypeError errorMsg)
 and comparison rel op left right = MyResult.result {
-  let! lType = getType rel left
-  let! rType = getType rel right
+  let! lType = Relation.getType rel left
+  let! rType = Relation.getType rel right
   let! ff =
     if lType <> rType then
       MyResult.Error (TypeError (sprintf "Type mismatch in conditional expression: %A <=> %A" lType rType))

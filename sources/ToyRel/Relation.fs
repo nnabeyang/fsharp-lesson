@@ -89,3 +89,25 @@ module Relation =
         |> MyResult.Ok
     with
       | ToyRelTypeException errorMsg -> MyResult.Error (TypeError errorMsg)
+
+  let getTypeByColName rel name =
+    let df = toFrame rel
+    let types = df.ColumnTypes |> Seq.toList
+    try
+      let idx = df.ColumnKeys |> Seq.findIndex (fun key -> key = name)
+      types[idx] |> MyResult.Ok
+    with
+      | :? System.Collections.Generic.KeyNotFoundException -> MyResult.Error (EvalError "column name is wrong")
+
+  let getType rel cond =
+    match cond with
+      | Value value ->
+        match value with
+          | Literal literal ->
+            match literal with
+              | StrLiteral _ -> typeof<string>
+              | IntLiteral _ -> typeof<int>
+              | BoolLiteral _ -> typeof<bool>
+            |> MyResult.Ok
+          | ColumnName name -> getTypeByColName rel name
+      | Function _ -> typeof<bool> |> MyResult.Ok
