@@ -1,5 +1,19 @@
 module Common
 open System.IO
+open Deedle
+
+type LogicalOp = And | Or
+type ComparisonOp = Eq | Ne | Lt | Gt | Le | Ge
+type Filter = Filter of (ObjectSeries<string> -> obj)
+type ConditionalExpression =
+  | Value of Value
+  | Function of Function
+and Value =
+  | Literal of obj
+  | ColumnName of string
+and Function =
+  | Comparison of ConditionalExpression * ComparisonOp * ConditionalExpression
+  | Logical of ConditionalExpression * LogicalOp * ConditionalExpression
 
 type Identifier = Identifier of string
 type Database = Database of string
@@ -8,6 +22,7 @@ type Expression =
   | Identifier of Identifier
   | Project of ProjectExpression
   | Difference of BinaryExpression
+  | Restrict of Expression * ConditionalExpression
 and ProjectExpression = Expression * string list
 and BinaryExpression = Expression * Expression
 
@@ -19,6 +34,10 @@ type Statement =
   | UseStatement of Database
 and
   Assignment = Identifier * Expression
+
+type ToyRelError =
+  | EvalError of string
+  | TypeError of string
 
 let databaseBaseDir = "database"
 let databaseFileExt = ".csv"
