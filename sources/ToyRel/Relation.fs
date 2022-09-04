@@ -79,9 +79,14 @@ module Relation =
     return d
   }
 
-  let restrict rel (Filter f) =
+  let restrict rel  (func: Filter) =
+    let (Filter f) = func
     let df = toFrame rel
-    df.RowsDense
-      |> Series.filterValues(f)
-      |> Frame.ofRows
-      |> Relation
+    try
+      df.RowsDense
+        |> Series.filterValues(fun row -> (f row) :?> bool)
+        |> Frame.ofRows
+        |> Relation
+        |> MyResult.Ok
+    with
+      | :? System.InvalidCastException as ex -> MyResult.Error (TypeError ex.Message)

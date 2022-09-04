@@ -4,7 +4,7 @@ open Deedle
 
 type LogicalOp = And | Or
 type ComparisonOp = Eq | Ne | Lt | Gt | Le | Ge
-type Filter = Filter of (ObjectSeries<string> -> bool)
+type Filter = Filter of (ObjectSeries<string> -> obj)
 type ConditionalExpression =
   | Value of Value
   | Function of Function

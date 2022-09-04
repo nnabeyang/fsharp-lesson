@@ -37,8 +37,8 @@ and differenceExpression (binaryExpr: BinaryExpression) =
 and restrictExpression expr cond =
   match (expression expr) with
     | MyResult.Ok rel ->
-      match Condition.condition rel cond with
-        | MyResult.Ok f -> Relation.restrict rel f |> MyResult.Ok
+      match (Condition.condition rel cond) with
+        | MyResult.Ok f-> Relation.restrict rel f
         | MyResult.Error e -> MyResult.Error e
     | MyResult.Error e -> MyResult.Error e
 

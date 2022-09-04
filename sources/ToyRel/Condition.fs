@@ -9,7 +9,7 @@ let getType rel cond =
     | Value value ->
       match value with
         | Literal literal -> literal.GetType() |> MyResult.Ok
-        | ColumnName name ->        
+        | ColumnName name ->
           let df = Relation.toFrame rel
           let types = df.ColumnTypes |> Seq.toList
           try
@@ -19,92 +19,70 @@ let getType rel cond =
             | :? System.Collections.Generic.KeyNotFoundException -> MyResult.Error (EvalError "column name is wrong")
     | Function _ -> typeof<bool> |> MyResult.Ok
 
-let value<'T when 'T: comparison> expr =
-  try
-    match expr with
-      | Literal literal ->
-        let v = literal :?> 'T
-        fun (_: ObjectSeries<string>) -> v
-        |> MyResult.Ok
-        | ColumnName name -> (fun (row: ObjectSeries<string>)-> row.GetAs<'T>(name)) |> MyResult.Ok
-  with
-    | :? System.InvalidCastException as ex -> MyResult.Error (TypeError ex.Message)
-
-let rowFunc<'T when 'T: comparison> expr =
-  // boolの場合はrowFuncBoolが呼ばれる
-  assert (typeof<'T> <> typeof<bool>)
-  match expr with
-      | Value v -> value<'T> v
-      | Function _ -> MyResult.Error (EvalError "no reach")
-
-let compare<'T when 'T: comparison> op (left: ObjectSeries<string> -> 'T) (right: ObjectSeries<string> -> 'T) =
+let compare<'T when 'T: comparison> (op: ComparisonOp) (left: Filter) (right: Filter) =
+  let (Filter l) = left
+  let (Filter r) = right
+  let lf = fun row -> (l row) :?> 'T
+  let rf = fun row -> (r row) :?> 'T
   match op with
-    | Eq -> fun (row: ObjectSeries<string>) -> (left row) = (right row)
-    | Ne -> fun (row: ObjectSeries<string>) -> (left row) <> (right row)
-    | Lt -> fun (row: ObjectSeries<string>) -> (left row) <  (right row)
-    | Gt -> fun (row: ObjectSeries<string>) -> (left row) > (right row)
-    | Le -> fun (row: ObjectSeries<string>) -> (left row) <= (right row)
-    | Ge -> fun (row: ObjectSeries<string>) -> (left row) >= (right row)
+    | Eq -> fun (row: ObjectSeries<string>) -> ((lf row) = (rf row)) :> obj
+    | Ne -> fun (row: ObjectSeries<string>) -> ((lf row) <> (rf row)) :> obj
+    | Lt -> fun (row: ObjectSeries<string>) -> ((lf row) <  (rf row)) :> obj
+    | Gt -> fun (row: ObjectSeries<string>) -> ((lf row) > (rf row)) :> obj
+    | Le -> fun (row: ObjectSeries<string>) -> (lf row) <= (rf row) :> obj
+    | Ge -> fun (row: ObjectSeries<string>) -> ((lf row) >= (rf row)) :> obj
   |> Filter
   |> MyResult.Ok
 
-let _comparison<'T when 'T: comparison> (op: ComparisonOp) (left: ConditionalExpression) (right: ConditionalExpression) = MyResult.result {
-  let! l = rowFunc<'T> left
-  let! r = rowFunc<'T> right
-  let! f = compare<'T> op l r
-  return f
-}
-
-let rec condition (rel: Relation.T) (cond: ConditionalExpression) =
+let rec condition  (rel: Relation.T) (cond: ConditionalExpression) =
   match cond with
-    | Value (Literal objVal) -> literal objVal
+    | Value v -> value v
     | Function func ->
       match func with
         | Comparison (left, op, right) -> comparison rel op left right
         | Logical (left, op, right) -> logical rel op left right
-    | Value (ColumnName _) -> MyResult.Error (EvalError "column name is not a conditional expression.")
-and literal (objVal: obj) =
-  match objVal.GetType() with
-    | p when p = typeof<bool> ->
-      let boolVal = objVal :?> bool
-      fun (_: ObjectSeries<string>) -> boolVal
-      |> Filter
-      |> MyResult.Ok
-    | p -> MyResult.Error (EvalError (sprintf "%A value is not a conditional expression" p))
+and value expr =
+  try
+    match expr with
+      | Literal v ->
+        fun (_: ObjectSeries<string>) -> v
+        |> Filter
+        |> MyResult.Ok
+      | ColumnName name -> MyResult.result {
+        let! f =
+          (fun (row: ObjectSeries<string>)-> row.Get(name))
+          |> Filter
+          |> MyResult.Ok
+        return f
+       }
+  with
+    | :? System.InvalidCastException as ex -> MyResult.Error (TypeError ex.Message)
 and comparison (rel: Relation.T) (op: ComparisonOp) (left: ConditionalExpression) (right: ConditionalExpression) = MyResult.result {
   let! lType = getType rel left
   let! rType = getType rel right
-  let! f =
+  let! ff =
     if lType <> rType then
       MyResult.Error (TypeError (sprintf "Type mismatch in conditional expression: %A <=> %A" lType rType))
-    else
-      match lType with
-        | p when p = typeof<bool> -> MyResult.result {
-          let! l = rowFuncBool rel left
-          let! r = rowFuncBool rel right
-          let! f = compare<bool>  op l r
-          return f
-         }
-        | p when p = typeof<int> -> _comparison<int> op left right
-        | p when p = typeof<string> -> _comparison<string>  op left right
-        | p  -> MyResult.Error (TypeError (sprintf "%A is not supported" p))
-  return f
+    else MyResult.result {
+      let! l = condition rel left
+      let! r = condition rel right
+      let! f = match lType with
+                | p when p = typeof<int> -> compare<int> op l r
+                | p when p = typeof<string> -> compare<string> op l r
+                | p when p = typeof<bool> -> compare<bool> op l r
+                | p -> MyResult.Error (TypeError (sprintf "%A is not supported" p))
+      return f
+    }
+  return ff
 }
-and rowFuncBool (rel: Relation.T) (expr: ConditionalExpression) =
-  match expr with
-    | Function _ ->
-      match condition rel expr with
-        | MyResult.Ok (Filter f) ->
-          (fun x -> f x)
-          |> MyResult.Ok
-        | MyResult.Error e -> MyResult.Error e
-    | Value v  -> value<bool> v
 and logical (rel: Relation.T) (op: LogicalOp) (left: ConditionalExpression) (right: ConditionalExpression) = MyResult.result {
   let! (Filter l) = condition rel left
   let! (Filter r) = condition rel right
+  let lf = fun row -> (l row) :?> bool
+  let rf = fun row -> (r row) :?> bool
   let! f =  match op with
-              | And -> fun (row: ObjectSeries<string>) -> (l row) && (r row)
-              | Or -> fun (row: ObjectSeries<string>) -> (l row) || (r row)
+              | And -> fun (row: ObjectSeries<string>) -> ((lf row) && (rf row)) :> obj
+              | Or -> fun (row: ObjectSeries<string>) -> ((lf row) || (rf row)) :> obj
             |> Filter
             |> MyResult.Ok
   return f
