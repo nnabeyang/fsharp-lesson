@@ -2,8 +2,12 @@ module Common
 open System.IO
 open Deedle
 
-type LogicalOp = And | Or
-type ComparisonOp = Eq | Ne | Lt | Gt | Le | Ge
+type BinaryOp =
+  | LogicalOp of LogicalOp
+  | ComparisonOp of ComparisonOp
+and LogicalOp = And | Or
+and ComparisonOp = Eq | Ne | Lt | Gt | Le | Ge
+
 type ConditionalLiteral =
   | IntLiteral of int
   | StrLiteral of string
@@ -16,8 +20,8 @@ and Value =
   | Literal of ConditionalLiteral
   | ColumnName of string
 and Function =
-  | Comparison of ConditionalExpression * ComparisonOp * ConditionalExpression
-  | Logical of ConditionalExpression * LogicalOp * ConditionalExpression
+  | Comparison of ConditionalExpression * BinaryOp * ConditionalExpression
+  | Logical of ConditionalExpression * BinaryOp * ConditionalExpression
 
 type Identifier = Identifier of string
 type Database = Database of string

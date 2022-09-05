@@ -36,18 +36,18 @@ let pCondOprand: Parser<ConditionalExpression, unit> =
 let oppc = new OperatorPrecedenceParser<ConditionalExpression, unit, unit>()
 let pCondExpression = oppc.ExpressionParser
 oppc.TermParser <- (pCondOprand .>> spaces) <|> between (str_ws "(") (str_ws ")") pCondExpression
-oppc.AddOperator(InfixOperator("<", spaces, 2, Associativity.Left, fun x y -> Comparison (x, Lt, y) |> Function))
-oppc.AddOperator(InfixOperator("<=", spaces, 2, Associativity.Left, fun x y -> Comparison (x, Le, y) |> Function))
-oppc.AddOperator(InfixOperator("=", spaces, 1, Associativity.Left, fun x y -> Comparison (x, Eq, y) |> Function))
-oppc.AddOperator(InfixOperator(">", spaces, 2, Associativity.Left, fun x y -> Comparison (x, Gt, y) |> Function))
-oppc.AddOperator(InfixOperator(">=", spaces, 2, Associativity.Left, fun x y -> Comparison (x, Ge, y) |> Function))
-oppc.AddOperator(InfixOperator("<>", spaces, 1, Associativity.Left, fun x y -> Comparison (x, Ne, y) |> Function))
+oppc.AddOperator(InfixOperator("<", spaces, 2, Associativity.Left, fun x y -> Comparison (x, ComparisonOp Lt, y) |> Function))
+oppc.AddOperator(InfixOperator("<=", spaces, 2, Associativity.Left, fun x y -> Comparison (x, ComparisonOp Le, y) |> Function))
+oppc.AddOperator(InfixOperator("=", spaces, 1, Associativity.Left, fun x y -> Comparison (x, ComparisonOp Eq, y) |> Function))
+oppc.AddOperator(InfixOperator(">", spaces, 2, Associativity.Left, fun x y -> Comparison (x, ComparisonOp Gt, y) |> Function))
+oppc.AddOperator(InfixOperator(">=", spaces, 2, Associativity.Left, fun x y -> Comparison (x, ComparisonOp Ge, y) |> Function))
+oppc.AddOperator(InfixOperator("<>", spaces, 1, Associativity.Left, fun x y -> Comparison (x, ComparisonOp Ne, y) |> Function))
 
 let oppl = new OperatorPrecedenceParser<ConditionalExpression, unit, unit>()
 let pLogical = oppl.ExpressionParser
 oppl.TermParser <- (pCondExpression .>> spaces) <|> between (str_ws "(") (str_ws ")") pLogical
-oppl.AddOperator(InfixOperator("and", spaces, 1, Associativity.Left, fun x y -> Logical (x, And, y) |> Function))
-oppl.AddOperator(InfixOperator("or", spaces, 1, Associativity.Left, fun x y -> Logical (x, Or, y) |> Function))
+oppl.AddOperator(InfixOperator("and", spaces, 1, Associativity.Left, fun x y -> Logical (x, LogicalOp And, y) |> Function))
+oppl.AddOperator(InfixOperator("or", spaces, 1, Associativity.Left, fun x y -> Logical (x, LogicalOp Or, y) |> Function))
 
 let pTerm, pTermRef = createParserForwardedToRef<Expression, unit>()
 let pProjectExpression = (str_ws "project") >>. (pTerm .>> spaces) .>>. pColumnList |>> Project
