@@ -9,13 +9,15 @@ let compare op left right =
   let (RowFunc r) = right
   let lf = fun row -> l row
   let rf = fun row -> r row
-  match op with
-    | Eq -> fun (row: ObjectSeries<string>) -> ((lf row) = (rf row)) |> BoolLiteral
-    | Ne -> fun (row: ObjectSeries<string>) -> ((lf row) <> (rf row)) |> BoolLiteral
-    | Lt -> fun (row: ObjectSeries<string>) -> ((lf row) <  (rf row)) |> BoolLiteral
-    | Gt -> fun (row: ObjectSeries<string>) -> ((lf row) > (rf row)) |> BoolLiteral
-    | Le -> fun (row: ObjectSeries<string>) -> (lf row) <= (rf row) |> BoolLiteral
-    | Ge -> fun (row: ObjectSeries<string>) -> ((lf row) >= (rf row)) |> BoolLiteral
+  fun (row: ObjectSeries<string>) ->
+      match op with
+        | Eq -> (lf row) = (rf row)
+        | Ne -> (lf row) <> (rf row)
+        | Lt -> (lf row) <  (rf row)
+        | Gt -> (lf row) > (rf row)
+        | Le -> (lf row) <= (rf row)
+        | Ge -> (lf row) >= (rf row)
+    |> BoolLiteral
   |> RowFunc
   |> MyResult.Ok
 
@@ -65,10 +67,12 @@ and logical rel op left right = MyResult.result {
   let! r = condition rel right
   let lf = filter l
   let rf = filter r
-  let! f =  match op with
-              | And -> fun (row: ObjectSeries<string>) -> ((lf row) && (rf row)) |> BoolLiteral
-              | Or -> fun (row: ObjectSeries<string>) -> ((lf row) || (rf row)) |> BoolLiteral
-            |> RowFunc
-            |> MyResult.Ok
+  let! f = fun (row: ObjectSeries<string>) ->
+               match op with
+                  | And ->  (lf row) && (rf row)
+                  | Or -> (lf row) || (rf row)
+                |> BoolLiteral
+           |> RowFunc
+           |> MyResult.Ok
   return f
 }
