@@ -45,25 +45,21 @@ let rec condition rel cond =
         | Comparison (left, op, right) -> comparison rel op left right
         | Logical (left, op, right) -> logical rel op left right
 and unary rel expr =
-  try
-    match expr with
-      | Literal v ->
-        match v with
-          | BoolLiteral value -> (fun (_: ObjectSeries<string>) -> value) |> Filter
-          | _ -> (fun (_: ObjectSeries<string>) -> v) |> ColFunc
-        |> MyResult.Ok
-      | ColumnName name -> MyResult.result {
-        let! t = Relation.getTypeByColName rel name
-        let! f = match t with
-                  | p when p = typeof<string> -> (fun (row: ObjectSeries<string>) -> (row.GetAs<string>(name)) |> StrLiteral) |> ColFunc
-                  | p when p = typeof<int> -> (fun (row: ObjectSeries<string>) -> (row.GetAs<int>(name)) |> IntLiteral) |> ColFunc
-                  | p when p = typeof<bool> -> (fun (row: ObjectSeries<string>) -> (row.GetAs<bool>(name))) |> Filter
-                  | p -> raise (ToyRelTypeException (sprintf "%A is not supported" p))
-                |> MyResult.Ok
-        return f
-       }
-  with
-    | ToyRelTypeException errorMsg -> MyResult.Error (TypeError errorMsg)
+  match expr with
+    | Literal v ->
+      match v with
+        | BoolLiteral value -> (fun (_: ObjectSeries<string>) -> value) |> Filter
+        | _ -> (fun (_: ObjectSeries<string>) -> v) |> ColFunc
+      |> MyResult.Ok
+    | ColumnName name -> MyResult.result {
+      let! t = Relation.getTypeByColName rel name
+      let! f = match t with
+                | StrType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<string>(name)) |> StrLiteral) |> ColFunc
+                | IntType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<int>(name)) |> IntLiteral) |> ColFunc
+                | BoolType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<bool>(name))) |> Filter
+              |> MyResult.Ok
+      return f
+      }
 and logical rel op left right = MyResult.result {
   let! l = condition rel left
   let! r = condition rel right

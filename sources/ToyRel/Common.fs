@@ -2,6 +2,11 @@ module Common
 open System.IO
 open Deedle
 
+type ValueType =
+  | IntType
+  | StrType
+  | BoolType
+
 type BinaryOp =
   | LogicalOp of LogicalOp
   | ComparisonOp of ComparisonOp
@@ -50,7 +55,6 @@ and
 type ToyRelError =
   | EvalError of string
   | TypeError of string
-exception ToyRelTypeException of string
 
 let databaseBaseDir = "database"
 let databaseFileExt = ".csv"

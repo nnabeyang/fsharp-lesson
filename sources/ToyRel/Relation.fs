@@ -92,7 +92,11 @@ module Relation =
     let types = df.ColumnTypes |> Seq.toList
     try
       let idx = df.ColumnKeys |> Seq.findIndex (fun key -> key = name)
-      types[idx] |> MyResult.Ok
+      match types[idx] with
+        | p when p = typeof<int> -> IntType |> MyResult.Ok
+        | p when p = typeof<string> -> StrType |> MyResult.Ok
+        | p when p = typeof<bool> -> BoolType |> MyResult.Ok
+        | p -> MyResult.Error (TypeError (sprintf "%A is not supported" p))
     with
       | :? System.Collections.Generic.KeyNotFoundException -> MyResult.Error (EvalError "column name is wrong")
 
@@ -102,9 +106,9 @@ module Relation =
         match value with
           | Literal literal ->
             match literal with
-              | StrLiteral _ -> typeof<string>
-              | IntLiteral _ -> typeof<int>
-              | BoolLiteral _ -> typeof<bool>
+              | StrLiteral _ -> StrType
+              | IntLiteral _ -> IntType
+              | BoolLiteral _ -> BoolType
             |> MyResult.Ok
           | ColumnName name -> getTypeByColName rel name
-      | Function _ -> typeof<bool> |> MyResult.Ok
+      | Function _ -> BoolType |> MyResult.Ok
