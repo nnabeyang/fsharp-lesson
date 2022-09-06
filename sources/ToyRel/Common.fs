@@ -12,7 +12,11 @@ type ConditionalLiteral =
   | IntLiteral of int
   | StrLiteral of string
   | BoolLiteral of bool
-type RowFunc = RowFunc of (ObjectSeries<string> -> ConditionalLiteral)
+type RowFunc =
+  | ColFunc of ColFunc
+  | Filter of Filter
+and ColFunc = ObjectSeries<string> -> ConditionalLiteral
+and Filter = (ObjectSeries<string> -> bool)
 type ConditionalExpression =
   | Value of Value
   | Function of Function
@@ -60,10 +64,3 @@ let joinPath = List.fold (fun path entry -> Path.Combine(path, entry)) ""
 
 let databasePath (Database databaseName) (Identifier.Identifier ident) =
   joinPath ["."; databaseBaseDir; databaseName; ident + databaseFileExt]
-
-let filter (RowFunc f) = fun row ->
-  let v = f row
-  match v with
-    | BoolLiteral b -> b
-    | StrLiteral _ -> raise (ToyRelTypeException "string value is not a conditional expression.")
-    | IntLiteral _ -> raise (ToyRelTypeException "integer value is not a conditional expression.")

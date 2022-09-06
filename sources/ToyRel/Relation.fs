@@ -81,14 +81,11 @@ module Relation =
 
   let restrict rel  f =
     let df = toFrame rel
-    try
-      df.RowsDense
-        |> Series.filterValues(filter f)
-        |> Frame.ofRows
-        |> Relation
-        |> MyResult.Ok
-    with
-      | ToyRelTypeException errorMsg -> MyResult.Error (TypeError errorMsg)
+    df.RowsDense
+      |> Series.filterValues(f)
+      |> Frame.ofRows
+      |> Relation
+      |> MyResult.Ok
 
   let getTypeByColName rel name =
     let df = toFrame rel

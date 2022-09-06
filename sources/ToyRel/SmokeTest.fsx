@@ -144,12 +144,17 @@ run "print q15_2"
 // 条件式がカラムの値がboolにキャストできない場合
 run "use tandp"
 run "res = restrict (auction) (date_bought)"
-//Failure: TypeError: string value is not a conditional expression.
+// Failure: EvalError: non-boolean value is not a conditional expression.
 
 // 条件式にbool以外のリテラルになっている場合
 run "use tandp"
 run "res = restrict (auction) (\"hello\")"
-//Failure: TypeError: string value is not a conditional expression.
+//Failure: TypeError: non-boolean value is not a conditional expression.
+
+// 条件式にbool以外のリテラルになっている場合
+run "use tandp"
+run "res = restrict (stock) (date_out = \"INSTOCK\" and 1)"
+// Failure: TypeError: non-boolean value is cannot be computed with logical operators.
 
 // 条件式の型が違う場合(cell_priceは整数)
 run "use tandp"

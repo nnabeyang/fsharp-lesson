@@ -4,68 +4,83 @@ open Deedle
 open MyResult
 open Relation
 
-let compare op (left: ObjectSeries<string> -> bool) (right: ObjectSeries<string> -> bool) =
+let apply (func: RowFunc) (row: ObjectSeries<string>) =
+  match func with
+    | Filter f -> (f row) |> BoolLiteral
+    | ColFunc f -> (f row)
+let cmp op (left: RowFunc) (right: RowFunc) =
   fun (row: ObjectSeries<string>) ->
     match op with
-      | ComparisonOp cop ->
-        match cop with
-          | Eq -> (left row) = (right row)
-          | Ne -> (left row) <> (right row)
-          | Lt -> (left row) <  (right row)
-          | Gt -> (left row) > (right row)
-          | Le -> (left row) <= (right row)
-          | Ge -> (left row) >= (right row)
-      | LogicalOp lop ->
-        match lop with
-          | And ->  (left row) && (right row)
-          | Or -> (left row) || (right row)
-    |> BoolLiteral
+      | Eq -> (apply left row) = (apply right row)
+      | Ne -> (apply left row) <> (apply right row)
+      | Lt -> (apply left row) <  (apply right row)
+      | Gt -> (apply left row) > (apply right row)
+      | Le -> (apply left row) <= (apply right row)
+      | Ge -> (apply left row) >= (apply right row)
+let cmpl op (left: Filter) (right: Filter) =
+  fun (row: ObjectSeries<string>) ->
+    match op with
+      | And ->  (left row) && (right row)
+      | Or -> (left row) || (right row)
+
+let compare (op: BinaryOp) (left: RowFunc) (right: RowFunc) =
+  match op with
+    | ComparisonOp cop ->
+      cmp cop left right
+      |> Filter
+      |> MyResult.Ok
+    | LogicalOp lop ->
+      match (left, right) with
+        | (Filter lf, Filter rf) ->
+          (cmpl lop lf rf)
+          |> Filter
+          |> MyResult.Ok
+        | (_, _) -> MyResult.Error (TypeError "non-boolean value is cannot be computed with logical operators.")
 
 let rec condition rel cond =
   match cond with
-    | Value v -> unaryExpr rel v
+    | Value v -> unary rel v
     | Function func ->
       match func with
         | Comparison (left, op, right) -> comparison rel op left right
-        | Logical (left, op, right) -> binaryExpr rel op left right
-and unaryExpr rel expr =
+        | Logical (left, op, right) -> logical rel op left right
+and unary rel expr =
   try
     match expr with
       | Literal v ->
-        fun (_: ObjectSeries<string>) -> v
-        |> RowFunc
+        match v with
+          | BoolLiteral value -> (fun (_: ObjectSeries<string>) -> value) |> Filter
+          | _ -> (fun (_: ObjectSeries<string>) -> v) |> ColFunc
         |> MyResult.Ok
       | ColumnName name -> MyResult.result {
         let! t = Relation.getTypeByColName rel name
         let! f = match t with
-                  | p when p = typeof<string> -> fun (row: ObjectSeries<string>) -> (row.GetAs<string>(name) |> StrLiteral)
-                  | p when p = typeof<int> -> fun (row: ObjectSeries<string>) -> (row.GetAs<int>(name) |> IntLiteral)
-                  | p when p = typeof<bool> -> fun (row: ObjectSeries<string>) -> (row.GetAs<bool>(name) |> BoolLiteral)
+                  | p when p = typeof<string> -> (fun (row: ObjectSeries<string>) -> (row.GetAs<string>(name)) |> StrLiteral) |> ColFunc
+                  | p when p = typeof<int> -> (fun (row: ObjectSeries<string>) -> (row.GetAs<int>(name)) |> IntLiteral) |> ColFunc
+                  | p when p = typeof<bool> -> (fun (row: ObjectSeries<string>) -> (row.GetAs<bool>(name))) |> Filter
                   | p -> raise (ToyRelTypeException (sprintf "%A is not supported" p))
-                |> RowFunc
                 |> MyResult.Ok
         return f
        }
   with
     | ToyRelTypeException errorMsg -> MyResult.Error (TypeError errorMsg)
-and binaryExpr rel op left right = MyResult.result {
+and logical rel op left right = MyResult.result {
   let! l = condition rel left
   let! r = condition rel right
-  let lf = filter l
-  let rf = filter r
-  let! f =
-    compare op lf rf
-    |> RowFunc
-    |> MyResult.Ok
+  let! f = compare op l r
   return f
 }
 and comparison rel op left right = MyResult.result {
   let! lType = Relation.getType rel left
   let! rType = Relation.getType rel right
-  let! f =
+  let! ff =
     if lType <> rType then
       MyResult.Error (TypeError (sprintf "Type mismatch in conditional expression: %A <=> %A" lType rType))
-    else
-      binaryExpr rel op left right
-  return f
+    else MyResult.result {
+      let! l = condition rel left
+      let! r = condition rel right
+      let! f = compare op l r
+      return f
+    }
+  return ff
 }
