@@ -9,19 +9,9 @@ let apply (func: RowFunc) (row: ObjectSeries<string>) =
     | Filter f -> (f row) |> BoolLiteral
     | ColFunc f -> (f row)
 let cmp op (left: RowFunc) (right: RowFunc) =
-  fun (row: ObjectSeries<string>) ->
-    match op with
-      | Eq -> (apply left row) = (apply right row)
-      | Ne -> (apply left row) <> (apply right row)
-      | Lt -> (apply left row) <  (apply right row)
-      | Gt -> (apply left row) > (apply right row)
-      | Le -> (apply left row) <= (apply right row)
-      | Ge -> (apply left row) >= (apply right row)
+  fun row -> evalComp op (apply left row) (apply right row)
 let cmpl op (left: Filter) (right: Filter) =
-  fun (row: ObjectSeries<string>) ->
-    match op with
-      | And ->  (left row) && (right row)
-      | Or -> (left row) || (right row)
+  fun row -> evalCompl op (left row) (right row)
 
 let compare (op: BinaryOp) (left: RowFunc) (right: RowFunc) =
   match op with

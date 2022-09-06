@@ -13,6 +13,19 @@ type BinaryOp =
 and LogicalOp = And | Or
 and ComparisonOp = Eq | Ne | Lt | Gt | Le | Ge
 
+let evalCompl op l r =
+  match op with
+    | And -> l && r
+    | Or -> l || r
+let evalComp op l r =
+  match op with
+    | Eq -> l = r
+    | Ne -> l <> r
+    | Lt -> l <  r
+    | Gt -> l > r
+    | Le -> l <= r
+    | Ge -> l >= r
+
 type ConditionalLiteral =
   | IntLiteral of int
   | StrLiteral of string
