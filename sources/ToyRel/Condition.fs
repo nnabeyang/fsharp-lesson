@@ -13,19 +13,18 @@ let cmp op (left: RowFunc) (right: RowFunc) =
 let cmpl op (left: Filter) (right: Filter) =
   fun row -> evalCompl op (left row) (right row)
 
-let compare (op: BinaryOp) (left: RowFunc) (right: RowFunc) =
-  match op with
-    | ComparisonOp cop ->
-      cmp cop left right
+let compare (op: ComparisonOp) (left: RowFunc) (right: RowFunc) =
+  cmp op left right
+    |> Filter
+    |> MyResult.Ok
+
+let compareL (op: LogicalOp) (left: RowFunc) (right: RowFunc) =
+  match (left, right) with
+    | (Filter lf, Filter rf) ->
+      (cmpl op lf rf)
       |> Filter
       |> MyResult.Ok
-    | LogicalOp lop ->
-      match (left, right) with
-        | (Filter lf, Filter rf) ->
-          (cmpl lop lf rf)
-          |> Filter
-          |> MyResult.Ok
-        | (_, _) -> MyResult.Error (TypeError "non-boolean value is cannot be computed with logical operators.")
+    | (_, _) -> MyResult.Error (TypeError "non-boolean value is cannot be computed with logical operators.")
 
 let rec condition rel cond =
   match cond with
@@ -53,7 +52,7 @@ and unary rel expr =
 and logical rel op left right = MyResult.result {
   let! l = condition rel left
   let! r = condition rel right
-  let! f = compare op l r
+  let! f = compareL op l r
   return f
 }
 and comparison rel op left right = MyResult.result {

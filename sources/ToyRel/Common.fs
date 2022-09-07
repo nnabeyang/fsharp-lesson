@@ -7,11 +7,8 @@ type ValueType =
   | StrType
   | BoolType
 
-type BinaryOp =
-  | LogicalOp of LogicalOp
-  | ComparisonOp of ComparisonOp
-and LogicalOp = And | Or
-and ComparisonOp = Eq | Ne | Lt | Gt | Le | Ge
+type LogicalOp = And | Or
+type ComparisonOp = Eq | Ne | Lt | Gt | Le | Ge
 
 let evalCompl op l r =
   match op with
@@ -54,8 +51,8 @@ and Value =
   | Literal of ConditionalLiteral
   | ColumnName of string
 and Function =
-  | Comparison of ConditionalExpression * BinaryOp * ConditionalExpression
-  | Logical of ConditionalExpression * BinaryOp * ConditionalExpression
+  | Comparison of ConditionalExpression * ComparisonOp * ConditionalExpression
+  | Logical of ConditionalExpression * LogicalOp * ConditionalExpression
 
 type Identifier = Identifier of string
 type Database = Database of string
