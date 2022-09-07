@@ -159,7 +159,7 @@ run "res = restrict (stock) (date_out = \"INSTOCK\" and 1)"
 // 条件式の型が違う場合(cell_priceは整数)
 run "use tandp"
 run "res = restrict (auction) (sell_price = \"hello\")"
-//Failure: TypeError: Type mismatch in conditional expression: System.Int32 <=> System.String
+//Failure: TypeError: Type mismatch in conditional expression: IntType <=> StrType
 
 // 存在しないカラム名で式を書いた場合
 run "use tandp"

@@ -4,27 +4,9 @@ open Deedle
 open MyResult
 open Relation
 
-let apply (func: RowFunc) (row: ObjectSeries<string>) =
-  match func with
-    | Filter f -> (f row) |> BoolLiteral
-    | ColFunc f -> (f row)
-let cmp op (left: RowFunc) (right: RowFunc) =
-  fun row -> evalComp op (apply left row) (apply right row)
-let cmpl op (left: Filter) (right: Filter) =
-  fun row -> evalCompl op (left row) (right row)
 
-let compare (op: ComparisonOp) (left: RowFunc) (right: RowFunc) =
-  cmp op left right
-    |> Filter
-    |> MyResult.Ok
-
-let compareL (op: LogicalOp) (left: RowFunc) (right: RowFunc) =
-  match (left, right) with
-    | (Filter lf, Filter rf) ->
-      (cmpl op lf rf)
-      |> Filter
-      |> MyResult.Ok
-    | (_, _) -> MyResult.Error (TypeError "non-boolean value is cannot be computed with logical operators.")
+let cmp (op: ComparisonOp) l r = fun row -> evalComp op (l row) (r row)
+let cmpl op l r = fun row -> evalCompl op (l row) (r row)
 
 let rec condition rel cond =
   match cond with
@@ -37,35 +19,42 @@ and unary rel expr =
   match expr with
     | Literal v ->
       match v with
+        | StrLiteral value -> (fun (_: ObjectSeries<string>) -> value |> StrValue) |> ColFunc
+        | IntLiteral value -> (fun (_: ObjectSeries<string>) -> value |> IntValue) |> ColFunc
         | BoolLiteral value -> (fun (_: ObjectSeries<string>) -> value) |> Filter
-        | _ -> (fun (_: ObjectSeries<string>) -> v) |> ColFunc
       |> MyResult.Ok
     | ColumnName name -> MyResult.result {
-      let! t = Relation.getTypeByColName rel name
-      let! f = match t with
-                | StrType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<string>(name)) |> StrLiteral) |> ColFunc
-                | IntType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<int>(name)) |> IntLiteral) |> ColFunc
-                | BoolType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<bool>(name))) |> Filter
-              |> MyResult.Ok
-      return f
+        let! t = Relation.getTypeByColName rel name
+        let! f = match t with
+                  | StrType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<string>(name)) |> StrValue) |> ColFunc
+                  | IntType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<int>(name)) |> IntValue) |> ColFunc
+                  | BoolType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<bool>(name))) |> Filter
+                |> MyResult.Ok
+        return f
       }
 and logical rel op left right = MyResult.result {
   let! l = condition rel left
   let! r = condition rel right
-  let! f = compareL op l r
-  return f
+  let! f =
+    match (l, r) with
+      | (Filter lf, Filter rf) -> (cmpl op lf rf) |> MyResult.Ok
+      | (_, _) -> MyResult.Error (TypeError "non-boolean value is cannot be computed with logical operators.")
+  return (Filter f)
 }
 and comparison rel op left right = MyResult.result {
-  let! lType = Relation.getType rel left
-  let! rType = Relation.getType rel right
-  let! ff =
-    if lType <> rType then
-      MyResult.Error (TypeError (sprintf "Type mismatch in conditional expression: %A <=> %A" lType rType))
-    else MyResult.result {
-      let! l = condition rel left
-      let! r = condition rel right
-      let! f = compare op l r
-      return f
-    }
-  return ff
+    let! l = condition rel left
+    let! r = condition rel right
+    let! lType = Relation.getType rel left
+    let! rType = Relation.getType rel right
+    let! f =
+      if lType <> rType then
+        MyResult.Error (TypeError (sprintf "Type mismatch in conditional expression: %A <=> %A" lType rType))
+      else
+      match (l, r) with
+        | (Filter lf, Filter rf) -> (cmp op lf rf) |> MyResult.Ok
+        | (ColFunc lf, ColFunc rf) -> (cmp op lf rf) |> MyResult.Ok
+        | (_, _) ->
+          // lTypeとrTypeが等しいときは両方ともFilterかColFuncになる
+          MyResult.Error (TypeError "no reach")
+  return (Filter f)
 }
