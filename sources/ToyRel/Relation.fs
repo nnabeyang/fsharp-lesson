@@ -79,6 +79,47 @@ module Relation =
     return d
   }
 
+  // 2つのリレーション分のカラム名を取得する。
+  // ただし、カラム名が重複する場合は右側のカラム名にprefixを付ける。
+  let combinedColumns (Relation df1) (Relation df2) prefix =
+    let columns1 = df1.Columns.Keys
+    let keys1Set = columns1 |> HashSet
+
+    let columns2 =
+      df2.Columns.Keys
+        |> Seq.map (fun name ->
+          if (keys1Set.Contains name) then
+            (sprintf "%s.%s" prefix name)
+          else
+            name
+        )
+    Seq.append columns1 columns2
+  
+  let calcProduct rel1 rel2 prefix =
+      let (Relation df2) = rel2
+      let (Relation df1) = rel1      
+      let columns = combinedColumns rel1 rel2 prefix
+      df1.RowsDense.Values |> Seq.toList
+        |> List.map (fun row1 ->
+          df2.RowsDense.Values |> Seq.toList
+            |> List.map (fun row2 ->
+              Series(columns, Seq.append row1.ValuesAll row2.ValuesAll)   
+            )
+          )
+      |> List.concat
+      |> Series.ofValues
+      |> Frame.ofRows
+      |> Relation
+      |> MyResult.Ok
+  
+  // 2つのリレーションの積(直積)を取る
+  let product left right rName = MyResult.result {
+    let! l = left
+    let! r = right
+    let! d = calcProduct l r rName
+    return d
+  }
+
   let restrict rel  f =
     let df = toFrame rel
     df.RowsDense

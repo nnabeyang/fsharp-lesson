@@ -165,3 +165,83 @@ run "res = restrict (auction) (sell_price = \"hello\")"
 run "use tandp"
 run "restrict (auction) (no_such_col > 0)"
 //Failure: EvalError: column name is wrong
+
+// 16: productの例
+run "use wikipedia"
+run "ex16_0 = (Employee) product (Dept)"
+run "print ex16_0"
+(*
+      Key Name    EmpId DeptName        Dept.DeptName Manager 
+0  -> 0   Harry   3415  Finance         Finance       George  
+1  -> 1   Harry   3415  Finance         Sales         Harriet 
+2  -> 2   Harry   3415  Finance         Production    Charles 
+3  -> 3   Sally   2241  Sales           Finance       George  
+4  -> 4   Sally   2241  Sales           Sales         Harriet 
+5  -> 5   Sally   2241  Sales           Production    Charles 
+6  -> 6   George  3401  Finance         Finance       George  
+7  -> 7   George  3401  Finance         Sales         Harriet 
+8  -> 8   George  3401  Finance         Production    Charles 
+9  -> 9   Harriet 2202  Sales           Finance       George  
+10 -> 10  Harriet 2202  Sales           Sales         Harriet 
+11 -> 11  Harriet 2202  Sales           Production    Charles 
+12 -> 12  Mary    1257  Human Resources Finance       George  
+13 -> 13  Mary    1257  Human Resources Sales         Harriet 
+14 -> 14  Mary    1257  Human Resources Production    Charles 
+*)
+
+// カラム名が被らない例
+run "use wikipedia"
+run "ex16_1 = (Employee) product (Completed)"
+run "print ex16_1"
+(*
+      Key Name    EmpId DeptName        Student Task      
+0  -> 0   Harry   3415  Finance         Fred    Database1 
+1  -> 1   Harry   3415  Finance         Fred    Database2 
+2  -> 2   Harry   3415  Finance         Fred    Compiler1 
+3  -> 3   Harry   3415  Finance         Eugene  Database1 
+4  -> 4   Harry   3415  Finance         Eugene  Compiler1 
+5  -> 5   Harry   3415  Finance         Sarah   Database1 
+6  -> 6   Harry   3415  Finance         Sarah   Database2 
+7  -> 7   Sally   2241  Sales           Fred    Database1 
+8  -> 8   Sally   2241  Sales           Fred    Database2 
+9  -> 9   Sally   2241  Sales           Fred    Compiler1 
+10 -> 10  Sally   2241  Sales           Eugene  Database1 
+11 -> 11  Sally   2241  Sales           Eugene  Compiler1 
+12 -> 12  Sally   2241  Sales           Sarah   Database1 
+13 -> 13  Sally   2241  Sales           Sarah   Database2 
+14 -> 14  George  3401  Finance         Fred    Database1 
+:     ... ...     ...   ...             ...     ...       
+20 -> 20  George  3401  Finance         Sarah   Database2 
+21 -> 21  Harriet 2202  Sales           Fred    Database1 
+22 -> 22  Harriet 2202  Sales           Fred    Database2 
+23 -> 23  Harriet 2202  Sales           Fred    Compiler1 
+24 -> 24  Harriet 2202  Sales           Eugene  Database1 
+25 -> 25  Harriet 2202  Sales           Eugene  Compiler1 
+26 -> 26  Harriet 2202  Sales           Sarah   Database1 
+27 -> 27  Harriet 2202  Sales           Sarah   Database2 
+28 -> 28  Mary    1257  Human Resources Fred    Database1 
+29 -> 29  Mary    1257  Human Resources Fred    Database2 
+30 -> 30  Mary    1257  Human Resources Fred    Compiler1 
+31 -> 31  Mary    1257  Human Resources Eugene  Database1 
+32 -> 32  Mary    1257  Human Resources Eugene  Compiler1 
+33 -> 33  Mary    1257  Human Resources Sarah   Database1 
+34 -> 34  Mary    1257  Human Resources Sarah   Database2 
+*)
+
+// 右側にリレーション名が無い場合
+run "use tandp"
+run "ex16_2 = (restrict (stock) (stock > 1300)) product (project (restrict (stock) (date_out = \"INSTOCK\")) sell_price, cost_price)"
+run "print ex16_2"
+(*
+     Key branch stock size colour sell_price cost_price date_in            date_out tmp.sell_price tmp.cost_price 
+0 -> 0   L2     2921  M    BLACK  25.00      15.20      1989/04/17 0:00:00 17APR89  15.50          9.25           
+1 -> 1   L2     2921  M    BLACK  25.00      15.20      1989/04/17 0:00:00 17APR89  13.50          6.25           
+2 -> 2   L2     2933  L    NAVY   13.50      6.25       1989/05/28 0:00:00 16JUN89  15.50          9.25           
+3 -> 3   L2     2933  L    NAVY   13.50      6.25       1989/05/28 0:00:00 16JUN89  13.50          6.25           
+4 -> 4   L2     2934  M    NAVY   13.50      6.25       1989/05/28 0:00:00 INSTOCK  15.50          9.25           
+5 -> 5   L2     2934  M    NAVY   13.50      6.25       1989/05/28 0:00:00 INSTOCK  13.50          6.25           
+6 -> 6   L2     2967  S    BEIGE  18.75      8.25       1989/02/16 0:00:00 25MAR89  15.50          9.25           
+7 -> 7   L2     2967  S    BEIGE  18.75      8.25       1989/02/16 0:00:00 25MAR89  13.50          6.25           
+8 -> 8   P2     4201  L    BROWN  16.95      9.90       1989/05/18 0:00:00 16JUN89  15.50          9.25           
+9 -> 9   P2     4201  L    BROWN  16.95      9.90       1989/05/18 0:00:00 16JUN89  13.50          6.25   
+*)

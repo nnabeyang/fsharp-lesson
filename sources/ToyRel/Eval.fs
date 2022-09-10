@@ -22,11 +22,18 @@ let randomString length =
   String.init length (fun _ -> char (random.Next( (int 'a'), (int 'z') + 1)) |> sprintf "%c")
 let randomBaseName() = "zz" + (randomString 4) |> Identifier.Identifier
 
+// リレーションの名前を取得する。Expressionが式になっている場合は名前がないので"tmp"を返す
+let relationName (expr: Expression) =
+  match expr with
+    | Identifier (Identifier.Identifier name) -> name
+    | _ -> "tmp"
+
 let rec expression expr =
   match expr with
     | Project cols -> projectExpression cols
     | Restrict (expr, cond) -> restrictExpression expr cond
     | Difference binaryExpr -> differenceExpression binaryExpr
+    | Product binaryExpr -> productExpression binaryExpr
     | Identifier basename -> Relation.load basename
 and  projectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
@@ -34,6 +41,10 @@ and  projectExpression (expr : ProjectExpression) =
 and differenceExpression (binaryExpr: BinaryExpression) =
   let (left, right) = binaryExpr
   Relation.difference (expression left) (expression right)
+and productExpression (binaryExpr: BinaryExpression) =
+  let (left, right) = binaryExpr
+  let rName = relationName right
+  Relation.product (expression left) (expression right) rName
 and restrictExpression expr cond =
   match (expression expr) with
     | MyResult.Ok rel ->

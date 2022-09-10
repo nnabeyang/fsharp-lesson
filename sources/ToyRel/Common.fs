@@ -64,6 +64,7 @@ type Expression =
   | Identifier of Identifier
   | Project of ProjectExpression
   | Difference of BinaryExpression
+  | Product of BinaryExpression
   | Restrict of Expression * ConditionalExpression
 and ProjectExpression = Expression * string list
 and BinaryExpression = Expression * Expression

@@ -60,6 +60,7 @@ let oppe = new OperatorPrecedenceParser<Expression, unit, unit>()
 let pExpression = oppe.ExpressionParser
 oppe.TermParser <- pTerm
 oppe.AddOperator(InfixOperator("difference", spaces, 1, Associativity.Left, fun x y -> Difference (x,y)))
+oppe.AddOperator(InfixOperator("product", spaces, 1, Associativity.Left, fun x y -> Product (x,y)))
 
 let pUseStatement = (str_ws "use") >>. (pIdentifier |>> Database.Database |>> UseStatement)
 let pPrintStatement = (str_ws "print") >>. (pIdentifier |>> Identifier.Identifier |>> PrintStatement)
