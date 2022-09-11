@@ -1,5 +1,5 @@
 ﻿// For more information see https://aka.ms/fsharp-console-apps
-open RadLine
+open ReCJKLine
 open Parser
 open FParsec
 open Eval
@@ -12,13 +12,10 @@ let runStatement src =
     | CharParsers.Success(stmt, _, _) -> Eval.print (evalStatement stmt) 
     | CharParsers.Failure(errorMsg, _, _) -> printfn "Failure: %s" errorMsg
 
-let lineEditor = LineEditor()
-lineEditor.KeyBindings.Add<PreviousHistoryCommand>(ConsoleKey.P, ConsoleModifiers.Control)
-lineEditor.KeyBindings.Add<NextHistoryCommand>(ConsoleKey.N, ConsoleModifiers.Control)
-lineEditor.Prompt <- LineEditorPrompt(">", ".")
+let lineEditor = ReCJKLine()
 
 let rec repl() =
-  let line = lineEditor.ReadLine(System.Threading.CancellationToken.None).Result
+  let line = lineEditor.ReadLine(">")
   match (run pQuit line) with
     | CharParsers.Success _ -> ()
     | CharParsers.Failure _ ->
