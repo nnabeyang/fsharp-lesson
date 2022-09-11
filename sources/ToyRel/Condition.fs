@@ -23,11 +23,13 @@ and unary rel expr =
         | IntLiteral value -> (fun (_: ObjectSeries<string>) -> value |> IntValue) |> ColFunc
         | BoolLiteral value -> (fun (_: ObjectSeries<string>) -> value) |> Filter
       |> MyResult.Ok
-    | ColumnName name -> MyResult.result {
-        let! t = Relation.getTypeByColName rel name
+    | ColumnName colName -> MyResult.result {
+        let name = Relation.columnName rel colName
+        let! t = Relation.getTypeByColName rel colName
         let! f = match t with
                   | StrType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<string>(name)) |> StrValue) |> ColFunc
                   | IntType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<int>(name)) |> IntValue) |> ColFunc
+                  | DateTimeType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<System.DateTime>(name)) |> DateTimeValue) |> ColFunc
                   | BoolType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<bool>(name))) |> Filter
                 |> MyResult.Ok
         return f

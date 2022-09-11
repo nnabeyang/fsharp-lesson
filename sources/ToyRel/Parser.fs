@@ -11,13 +11,18 @@ identifierの仕様
 - カタカナ、漢字、英数字と"_"をサポートする
 *)
 let firstIdentifierRegex = "[_a-zA-Z]|\p{IsHiragana}|\p{IsKatakana}|\p{IsCJKUnifiedIdeographs}"
-let identifierRegex = sprintf "(%s)([0-9]|%s)*" firstIdentifierRegex firstIdentifierRegex
+let identifierRegex = sprintf "(%s)([0-9\.]|%s)*" firstIdentifierRegex firstIdentifierRegex
+let prefixRegex = sprintf "(%s)([0-9]|%s)*" firstIdentifierRegex firstIdentifierRegex
 
 let pIdentifier = regex identifierRegex
 let pSBracketColumn =
   let notSBracket s = s <> '[' && s <> ']'
   (str "[") >>. many1Satisfy notSBracket .>> (str "]")
 let pColumn = pIdentifier <|> pSBracketColumn
+let pPrefix = regex prefixRegex <|> pSBracketColumn
+let pPrefixedColumn =
+  attempt (pPrefix .>> str "." .>>. pColumn)
+  <|> attempt (pColumn |>> fun ident -> ("", ident))
 let pColumnList =
   let column_ws = pColumn .>> spaces
   sepBy column_ws (str_ws ",")
@@ -30,7 +35,7 @@ let pCondStr =
 let pCondOprand: Parser<ConditionalExpression, unit> =
   (
     (pInt  <|> pCondStr <|> pBool) |>> Literal
-    <|> (pColumn |>> ColumnName)
+    <|> (pPrefixedColumn |>> PrefixedIdentifier |>> ColumnName)
   )
   |>> Value
 let oppc = new OperatorPrecedenceParser<ConditionalExpression, unit, unit>()
@@ -52,9 +57,11 @@ oppl.AddOperator(InfixOperator("or", spaces, 1, Associativity.Left, fun x y -> L
 let pTerm, pTermRef = createParserForwardedToRef<Expression, unit>()
 let pProjectExpression = (str_ws "project") >>. (pTerm .>> spaces) .>>. pColumnList |>> Project
 let pRestrictExpression = (str_ws "restrict") >>. (pTerm .>> spaces) .>>. ((str_ws "(") >>. pLogical .>> (str_ws ")")) |>> Restrict
+let pJoinExpression =
+  pipe3 ((str_ws "join") >>. (pTerm .>> spaces)) (pTerm .>> spaces) ((str_ws "(") >>. pLogical .>> (str_ws ")")) (fun x y z -> Join (x, y, z))
 let pIdentifierExpression = pIdentifier |>> Identifier.Identifier |>> Expression.Identifier
 let pTermExpression = pProjectExpression <|> pRestrictExpression <|>  pIdentifierExpression
-pTermRef.Value <- between (str_ws "(") (str_ws ")")  pTermExpression <|> pProjectExpression <|> pRestrictExpression
+pTermRef.Value <- between (str_ws "(") (str_ws ")")  pTermExpression <|> pProjectExpression <|> pRestrictExpression <|> pJoinExpression
 
 let oppe = new OperatorPrecedenceParser<Expression, unit, unit>()
 let pExpression = oppe.ExpressionParser

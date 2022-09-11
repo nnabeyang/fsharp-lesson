@@ -32,6 +32,7 @@ let rec expression expr =
   match expr with
     | Project cols -> projectExpression cols
     | Restrict (expr, cond) -> restrictExpression expr cond
+    | Join (left, right, cond) -> joinExpression left right cond
     | Difference binaryExpr -> differenceExpression binaryExpr
     | Product binaryExpr -> productExpression binaryExpr
     | Identifier basename -> Relation.load basename
@@ -47,13 +48,19 @@ and productExpression (binaryExpr: BinaryExpression) =
   Relation.product (expression left) (expression right) rName
 and restrictExpression expr cond =
   match (expression expr) with
-    | MyResult.Ok rel ->
-      match (Condition.condition rel cond) with
-        | MyResult.Ok rowFunc ->
-          match rowFunc with
-            | Filter f -> Relation.restrict rel f
-            | ColFunc _ -> MyResult.Error (EvalError "non-boolean value is not a conditional expression.")
-        | MyResult.Error e -> MyResult.Error e
+    | MyResult.Ok rel -> conditionalExpression rel cond
+    | MyResult.Error e -> MyResult.Error e
+and joinExpression (left: Expression) (right: Expression) (cond: ConditionalExpression) = MyResult.result {
+  let! prod = productExpression (left, right)
+  let! result = conditionalExpression prod cond
+  return result
+}
+and conditionalExpression (rel: Relation.T) cond =
+  match (Condition.condition rel cond) with
+    | MyResult.Ok rowFunc ->
+      match rowFunc with
+        | Filter f -> Relation.restrict rel f
+        | ColFunc _ -> MyResult.Error (EvalError "non-boolean value is not a conditional expression.")
     | MyResult.Error e -> MyResult.Error e
 
 // 指定したRelationの内容を標準出力する

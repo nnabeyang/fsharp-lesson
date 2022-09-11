@@ -6,6 +6,7 @@ type ValueType =
   | IntType
   | StrType
   | BoolType
+  | DateTimeType
 
 type LogicalOp = And | Or
 type ComparisonOp = Eq | Ne | Lt | Gt | Le | Ge
@@ -30,6 +31,9 @@ type ConditionalLiteral =
 type ConditionalValue =
   | IntValue of int
   | StrValue of string
+  | DateTimeValue of System.DateTime
+
+type PrefixedIdentifier = PrefixedIdentifier of string * string
 
 // RowFuncはrestrictの条件式を構成する式やリテラルを
 // Relationの行を引数に取る関数として保持する。
@@ -52,7 +56,7 @@ type ConditionalExpression =
   | Function of Function
 and Value =
   | Literal of ConditionalLiteral
-  | ColumnName of string
+  | ColumnName of PrefixedIdentifier
 and Function =
   | Comparison of ConditionalExpression * ComparisonOp * ConditionalExpression
   | Logical of ConditionalExpression * LogicalOp * ConditionalExpression
@@ -60,12 +64,20 @@ and Function =
 type Identifier = Identifier of string
 type Database = Database of string
 
+let toString ident =
+  let (PrefixedIdentifier (prefix, name)) = ident
+  if prefix.Equals "" then
+    name
+  else
+    sprintf "%s.%s" prefix name
+
 type Expression =
   | Identifier of Identifier
   | Project of ProjectExpression
   | Difference of BinaryExpression
   | Product of BinaryExpression
   | Restrict of Expression * ConditionalExpression
+  | Join of Expression * Expression * ConditionalExpression
 and ProjectExpression = Expression * string list
 and BinaryExpression = Expression * Expression
 

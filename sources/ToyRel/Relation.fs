@@ -29,7 +29,7 @@ module Relation =
   // Relationを保存する。名前が衝突した場合は上書き保存する。  
   let save relation ident =
     let df = toFrame relation
-    df.SaveCsv (databasePath database.Value ident)
+    df.SaveCsv ((databasePath database.Value ident), includeRowKeys = false)
   
   // Relationからcolsで指定したカラムだけ残したRelationを新たに作る
   let project (cols: list<string>) relation =
@@ -128,15 +128,30 @@ module Relation =
       |> Relation
       |> MyResult.Ok
 
+  let columnName (Relation df) col =
+    let colSet = df.ColumnKeys |> HashSet
+    let name = toString col
+    if colSet.Contains name then
+      name
+    else
+      let (PrefixedIdentifier (_, name)) = col
+      name
+
+  let findColumnIndex rel col =
+    let (Relation df) = rel
+    let name = columnName rel col
+    df.ColumnKeys |> Seq.findIndex (fun key -> key = name)
+
   let getTypeByColName rel name =
     let df = toFrame rel
     let types = df.ColumnTypes |> Seq.toList
     try
-      let idx = df.ColumnKeys |> Seq.findIndex (fun key -> key = name)
+      let idx = findColumnIndex rel name
       match types[idx] with
         | p when p = typeof<int> -> IntType |> MyResult.Ok
         | p when p = typeof<string> -> StrType |> MyResult.Ok
         | p when p = typeof<bool> -> BoolType |> MyResult.Ok
+        | p when p = typeof<System.DateTime> -> DateTimeType |> MyResult.Ok
         | p -> MyResult.Error (TypeError (sprintf "%A is not supported" p))
     with
       | :? System.Collections.Generic.KeyNotFoundException -> MyResult.Error (EvalError "column name is wrong")

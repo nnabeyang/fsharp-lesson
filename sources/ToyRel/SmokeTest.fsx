@@ -120,6 +120,17 @@ run "print q15_0"
 2 -> 4   R049      15-05-68    3              16-03-89  8   
 *)
 
+// プレフィックス付きのカラム名の例
+run "use tandp"
+run "q15_01 = restrict (auction) (auction.sell_price>purchase_price)"
+run "print q15_01"
+(*
+     Key reference date_bought purchase_price date_sold sell_price 
+0 -> 1   R020      02-12-43    4              17-10-88  145        
+1 -> 3   R048      15-05-68    3              16-03-89  8          
+2 -> 4   R049      15-05-68    3              16-03-89  8  
+*)
+
 // tandp.mdの図書館データベースで、indexから作者がヘミングウェイでクラスがc3のものを取り出しましょう
 run "use tandp"
 run "q15_1 = restrict (index) ((author = \"HEMINGWAY\") and (class = \"C3\"))"
@@ -233,15 +244,200 @@ run "use tandp"
 run "ex16_2 = (restrict (stock) (stock > 1300)) product (project (restrict (stock) (date_out = \"INSTOCK\")) sell_price, cost_price)"
 run "print ex16_2"
 (*
-     Key branch stock size colour sell_price cost_price date_in            date_out tmp.sell_price tmp.cost_price 
-0 -> 0   L2     2921  M    BLACK  25.00      15.20      1989/04/17 0:00:00 17APR89  15.50          9.25           
-1 -> 1   L2     2921  M    BLACK  25.00      15.20      1989/04/17 0:00:00 17APR89  13.50          6.25           
-2 -> 2   L2     2933  L    NAVY   13.50      6.25       1989/05/28 0:00:00 16JUN89  15.50          9.25           
-3 -> 3   L2     2933  L    NAVY   13.50      6.25       1989/05/28 0:00:00 16JUN89  13.50          6.25           
-4 -> 4   L2     2934  M    NAVY   13.50      6.25       1989/05/28 0:00:00 INSTOCK  15.50          9.25           
-5 -> 5   L2     2934  M    NAVY   13.50      6.25       1989/05/28 0:00:00 INSTOCK  13.50          6.25           
-6 -> 6   L2     2967  S    BEIGE  18.75      8.25       1989/02/16 0:00:00 25MAR89  15.50          9.25           
-7 -> 7   L2     2967  S    BEIGE  18.75      8.25       1989/02/16 0:00:00 25MAR89  13.50          6.25           
-8 -> 8   P2     4201  L    BROWN  16.95      9.90       1989/05/18 0:00:00 16JUN89  15.50          9.25           
-9 -> 9   P2     4201  L    BROWN  16.95      9.90       1989/05/18 0:00:00 16JUN89  13.50          6.25   
+     branch stock size colour sell_price cost_price date_in            date_out tmp.sell_price tmp.cost_price 
+0 -> L2     2921  M    BLACK  25.00      15.20      1989/04/17 0:00:00 17APR89  15.50          9.25           
+1 -> L2     2921  M    BLACK  25.00      15.20      1989/04/17 0:00:00 17APR89  13.50          6.25           
+2 -> L2     2933  L    NAVY   13.50      6.25       1989/05/28 0:00:00 16JUN89  15.50          9.25           
+3 -> L2     2933  L    NAVY   13.50      6.25       1989/05/28 0:00:00 16JUN89  13.50          6.25           
+4 -> L2     2934  M    NAVY   13.50      6.25       1989/05/28 0:00:00 INSTOCK  15.50          9.25           
+5 -> L2     2934  M    NAVY   13.50      6.25       1989/05/28 0:00:00 INSTOCK  13.50          6.25           
+6 -> L2     2967  S    BEIGE  18.75      8.25       1989/02/16 0:00:00 25MAR89  15.50          9.25           
+7 -> L2     2967  S    BEIGE  18.75      8.25       1989/02/16 0:00:00 25MAR89  13.50          6.25           
+8 -> P2     4201  L    BROWN  16.95      9.90       1989/05/18 0:00:00 16JUN89  15.50          9.25           
+9 -> P2     4201  L    BROWN  16.95      9.90       1989/05/18 0:00:00 16JUN89  13.50          6.25   
+*)
+
+// 17. joinの例
+run "use wikipedia"
+run "ex17_1 = join (Employee) (Dept) (Employee.DeptName = Dept.DeptName)"
+run "print ex17_1"
+(*
+     Key Name    EmpId DeptName Dept.DeptName Manager 
+0 -> 0   Harry   3415  Finance  Finance       George  
+1 -> 4   Sally   2241  Sales    Sales         Harriet 
+2 -> 6   George  3401  Finance  Finance       George  
+3 -> 10  Harriet 2202  Sales    Sales         Harriet 
+*)
+
+// プレフィックスを省略した例
+run "use wikipedia"
+run "ex17_2 = join (Employee) (Dept) (DeptName = Dept.DeptName)"
+run "print ex17_2"
+(*
+     Key Name    EmpId DeptName Dept.DeptName Manager 
+0 -> 0   Harry   3415  Finance  Finance       George  
+1 -> 4   Sally   2241  Sales    Sales         Harriet 
+2 -> 6   George  3401  Finance  Finance       George  
+3 -> 10  Harriet 2202  Sales    Sales         Harriet 
+*)
+
+// joinしてからproject取った例
+run "use wikipedia"
+run "ex17_3 = project join (Employee) (Dept) (DeptName = Dept.DeptName) DeptName, Dept.DeptName"
+run "print ex17_3"
+(*
+     DeptName Dept.DeptName 
+0 -> Finance  Finance       
+1 -> Sales    Sales
+*)
+
+// joinを動かしてみる
+// 4.3.1 商品を提供している全producerを調べよ
+run "use tandp"
+run "q17_1 = project (goods) producer"
+run "print q17_1"
+(*
+     producer   
+0 -> CLASSICS   
+1 -> 60S CLOTHS 
+2 -> MODERNA    
+*)
+// 4.3.2 支社に配送している全producerを調べよ
+run "use tandp"
+run "q17_2 = project (delivery) producer"
+run "print q17_2"
+(*
+     producer   
+0 -> CLASSICS   
+1 -> 60S CLOTHS 
+2 -> MODERNA
+*)
+
+// 4.3.3 L1支社に配送されてまだin stockな状態の全商品の、sell_priceとcost_priceを以下の２つの方法で調べよ
+// P1にL1支社でin stockなrowの一覧を入れ、次にP1からsell_price, cost_priceを取り出して表示する、という２つのクエリに分けるやり方
+run "use tandp"
+run "P1 = restrict (stock) (branch = \"L1\" and date_out = \"INSTOCK\")"
+run "print P1"
+(*
+     branch stock size colour sell_price cost_price date_in date_out 
+0 -> L1     1004  M    WHITE  15.50      9.25       20DEC88 INSTOCK  
+*)
+run "q17_3 = project (P1) sell_price, cost_price"
+run "print q17_3"
+(*
+     sell_price cost_price 
+0 -> 15.50      9.25 
+*)
+
+//上と同じものをかっこを使ってネストして一文にしたやり方
+run "use tandp"
+run "q17_3_2 = project (restrict (stock) (branch = \"L1\" and date_out = \"INSTOCK\")) sell_price, cost_price"
+run "print q17_3_2"
+(*
+     sell_price cost_price 
+0 -> 15.50      9.25  
+*)
+
+// 4.3.4 以下の条件を満たすproducer, product_code, descriptionを表示せよ：
+// 全てのブランチで、届いた日と同じ日に売れたもの。（以下ヒントを書くので、自分で好きに書いたあとにヒントの通りにも書いてみて下さい）
+// まずは自分で好きに書いてみる。
+run "use tandp"
+// date_outに"INSTOCK"が混ざっているとタイプがStringになるので除去
+run "q17_4_tmp0 = restrict (stock) (date_out <> \"INSTOCK\")" 
+// q17_4_tmp: 届いた日と売れた日が同じ商品の商品コード
+run "q17_4_tmp = project join (restrict (q17_4_tmp0) (date_in = date_out)) (delivery) (branch = delivery.branch and stock = delivery.stock) product_code"
+run "print q17_4_tmp"
+(*
+     product_code 
+0 -> WOODSTOCK    
+1 -> FINESSE      
+2 -> 199K   
+*)
+run "q17_4 = project join (q17_4_tmp) (goods) (q17_4_tmp.product_code = goods.product_code) producer, product_code, description"
+run "print q17_4"
+(*
+     producer   product_code description 
+0 -> 60S CLOTHS WOODSTOCK    JEANS       
+1 -> 60S CLOTHS FINESSE      DRESS       
+2 -> MODERNA    199K         JACKET 
+*)
+
+run "use tandp"
+// r1にstockのうちdate_inとdate_outが等しいものだけを入れる
+run "r0 = restrict (stock) (date_out <>\"INSTOCK\")"
+// date_in, date_outが変換されてしまう
+run "r1 = restrict (r0) (date_in = date_out)"
+run "print r1"
+(*
+     branch stock size colour sell_price cost_price date_in            date_out           
+0 -> L2     2921  M    BLACK  25.00      15.20      1989/04/17 0:00:00 1989/04/17 0:00:00 
+1 -> P1     1026  L    BLUE   25.50      12.00      1989/05/12 0:00:00 1989/05/12 0:00:00 
+2 -> NY     1020  L    RED    17.45      7.85       1989/04/19 0:00:00 1989/04/19 0:00:00 
+*)
+// r2でr1とdeliveryを、ブランチとストックが同じようにjoin
+run "r2 = join (r1) (delivery) (r1.branch = delivery.branch and r1.stock = delivery.stock)"
+run "print r2"
+(*
+     branch stock size colour sell_price cost_price date_in            date_out           producer   product_code delivery.branch delivery.stock 
+0 -> L2     2921  M    BLACK  25.00      15.20      1989/04/17 0:00:00 1989/04/17 0:00:00 60S CLOTHS WOODSTOCK    L2              2921           
+1 -> P1     1026  L    BLUE   25.50      12.00      1989/05/12 0:00:00 1989/05/12 0:00:00 60S CLOTHS FINESSE      P1              1026           
+2 -> NY     1020  L    RED    17.45      7.85       1989/04/19 0:00:00 1989/04/19 0:00:00 MODERNA    199K         NY              1020           
+*)
+// r3にr2とgoodsをjoin
+run "r3 = join (r2) (goods) (r2.product_code = goods.product_code)"
+run "print r3"
+(*
+0 -> L2     2921  M    BLACK  25.00      15.20      1989/04/17 0:00:00 1989/04/17 0:00:00 60S CLOTHS WOODSTOCK    L2              2921           60S CLOTHS     WOODSTOCK          JEANS       
+1 -> P1     1026  L    BLUE   25.50      12.00      1989/05/12 0:00:00 1989/05/12 0:00:00 60S CLOTHS FINESSE      P1              1026           60S CLOTHS     FINESSE            DRESS       
+2 -> NY     1020  L    RED    17.45      7.85       1989/04/19 0:00:00 1989/04/19 0:00:00 MODERNA    199K         NY              1020           MODERNA        199K               JACKET  
+*)
+// r4でr3をproject
+run "r4 = project (r3) producer, product_code, description"
+run "print r4"
+(*
+     producer   product_code description 
+0 -> 60S CLOTHS WOODSTOCK    JEANS       
+1 -> 60S CLOTHS FINESSE      DRESS       
+2 -> MODERNA    199K         JACKET 
+*)
+
+// このやり方は最後にprojetをやっているので効率が悪い。もっと早くprojectを行うようにクエリを直すとどうなるか？
+run "use tandp"
+run "r1 = project (restrict (project (stock) branch, stock, date_in, date_out) (date_in = date_out)) branch, stock"
+run "r2 = project join (r1) (delivery) (r1.branch = delivery.branch and r1.stock = delivery.stock) product_code"
+run "r3 = project join (r2) (goods) (r2.product_code = goods.product_code) producer, product_code, description"
+run "print r3"
+(*
+     producer   product_code description 
+0 -> 60S CLOTHS WOODSTOCK    JEANS       
+1 -> 60S CLOTHS FINESSE      DRESS       
+2 -> MODERNA    199K         JACKET   
+*)
+
+// 4.3.5 以下の条件を満たすbranch, size, colour, sell_priceの一覧を表示せよ：
+// まだ売れてないdress全て
+// branch, stock: goodsとjoinするのに必要
+// branch, size, colur, cell_price: 最終結果に必要
+run "r1 = project (restrict (stock) (date_out = \"INSTOCK\")) branch, stock, size, colour, sell_price"
+run "print r1"
+(*
+     branch stock size colour sell_price 
+0 -> L1     1004  M    WHITE  15.50      
+1 -> L2     2934  M    NAVY   13.50   
+*)
+
+// product: goodsとjoinしてドレスに絞るのに必要
+// branch, size, colour, cell_price: 最終結果に必要
+run "r2 = project join (r1) (delivery) ((r1.branch = delivery.branch) and (r1.stock = delivery.stock)) product_code, branch, size, colour, sell_price"
+run "print r2"
+(*
+     product_code branch size colour sell_price 
+0 -> 403          L1     M    WHITE  15.50      
+1 -> DI4          L2     M    NAVY   13.50  
+*)
+run "r3 = project join (restrict (goods) (description = \"DRESS\")) (r2) (product_code = r2.product_code) branch, size, colour, sell_price"
+run "print r3"
+(*
+    branch size colour sell_price 
+0 -> L2     M    NAVY   13.50 
 *)
