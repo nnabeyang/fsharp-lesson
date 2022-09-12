@@ -24,7 +24,7 @@ and unary rel expr =
         | BoolLiteral value -> (fun (_: ObjectSeries<string>) -> value) |> Filter
       |> MyResult.Ok
     | ColumnName colName -> MyResult.result {
-        let name = Relation.columnName rel colName
+        let name = Relation.effectiveColumnName rel colName
         let! t = Relation.getTypeByColName rel colName
         let! f = match t with
                   | StrType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<string>(name)) |> StrValue) |> ColFunc

@@ -128,17 +128,19 @@ module Relation =
       |> Relation
       |> MyResult.Ok
 
-  let columnName (Relation df) col =
+  // 指定したcolumnNameをRelation上のカラム名に変換する
+  // columnNameもRelationのカラムもプレフィックス付きとプレフィックス無しのどちらもあり得るので、この変換が必要になる
+  let effectiveColumnName (Relation df) columnName =
     let colSet = df.ColumnKeys |> HashSet
-    let fullName = toString col
+    let fullName = toString columnName
     if colSet.Contains fullName then
       fullName
     else
-      dropPrefix col
+      dropPrefix columnName
 
-  let findColumnIndex rel col =
+  let findColumnIndex rel columnName =
     let (Relation df) = rel
-    let name = columnName rel col
+    let name = effectiveColumnName rel columnName
     df.ColumnKeys |> Seq.findIndex (fun key -> key = name)
 
   let getTypeByColName rel name =
