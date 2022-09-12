@@ -130,12 +130,11 @@ module Relation =
 
   let columnName (Relation df) col =
     let colSet = df.ColumnKeys |> HashSet
-    let name = toString col
-    if colSet.Contains name then
-      name
+    let fullName = toString col
+    if colSet.Contains fullName then
+      fullName
     else
-      let (PrefixedIdentifier (_, name)) = col
-      name
+      dropPrefix col
 
   let findColumnIndex rel col =
     let (Relation df) = rel

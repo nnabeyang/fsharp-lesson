@@ -21,8 +21,8 @@ let pSBracketColumn =
 let pColumn = pIdentifier <|> pSBracketColumn
 let pPrefix = regex prefixRegex <|> pSBracketColumn
 let pPrefixedColumn =
-  attempt (pPrefix .>> str "." .>>. pColumn)
-  <|> attempt (pColumn |>> fun ident -> ("", ident))
+  attempt (pPrefix .>> str "." .>>. pColumn) |>> Prefixed
+  <|> attempt (pColumn |>> Simple)
 let pColumnList =
   let column_ws = pColumn .>> spaces
   sepBy column_ws (str_ws ",")
@@ -35,7 +35,7 @@ let pCondStr =
 let pCondOprand: Parser<ConditionalExpression, unit> =
   (
     (pInt  <|> pCondStr <|> pBool) |>> Literal
-    <|> (pPrefixedColumn |>> PrefixedIdentifier |>> ColumnName)
+    <|> (pPrefixedColumn |>> ColumnName)
   )
   |>> Value
 let oppc = new OperatorPrecedenceParser<ConditionalExpression, unit, unit>()

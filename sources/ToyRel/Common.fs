@@ -33,8 +33,6 @@ type ConditionalValue =
   | StrValue of string
   | DateTimeValue of System.DateTime
 
-type PrefixedIdentifier = PrefixedIdentifier of string * string
-
 // RowFuncはrestrictの条件式を構成する式やリテラルを
 // Relationの行を引数に取る関数として保持する。
 type RowFunc =
@@ -56,7 +54,10 @@ type ConditionalExpression =
   | Function of Function
 and Value =
   | Literal of ConditionalLiteral
-  | ColumnName of PrefixedIdentifier
+  | ColumnName of ColumnName
+and ColumnName =
+  | Prefixed of string * string
+  | Simple of string
 and Function =
   | Comparison of ConditionalExpression * ComparisonOp * ConditionalExpression
   | Logical of ConditionalExpression * LogicalOp * ConditionalExpression
@@ -64,12 +65,16 @@ and Function =
 type Identifier = Identifier of string
 type Database = Database of string
 
-let toString ident =
-  let (PrefixedIdentifier (prefix, name)) = ident
-  if prefix.Equals "" then
-    name
-  else
-    sprintf "%s.%s" prefix name
+let toString column =
+  match column with
+    | Prefixed (prefix, name) ->
+      sprintf "%s.%s" prefix name
+    | Simple name -> name
+
+let dropPrefix column =
+  match column with
+    | Prefixed (_, name) -> name
+    | Simple name -> name
 
 type Expression =
   | Identifier of Identifier
