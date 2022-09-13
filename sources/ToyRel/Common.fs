@@ -7,8 +7,11 @@ type ValueType =
   | BoolType
   | DateTimeType
 
-type LogicalOp = And | Or
-type ComparisonOp = Eq | Ne | Lt | Gt | Le | Ge
+type BinaryOp =
+  | LogicalOp of LogicalOp
+  | ComparisonOp of ComparisonOp
+and LogicalOp = And | Or
+and ComparisonOp = Eq | Ne | Lt | Gt | Le | Ge
 
 let evalCompl op l r =
   match op with
@@ -43,9 +46,8 @@ and ColumnName =
   | Prefixed of string * string
   | Simple of string
 and Function =
-  | SimpleComparison of Value * ComparisonOp * Value
-  | Comparison of ConditionalExpression * ComparisonOp * ConditionalExpression
-  | Logical of ConditionalExpression * LogicalOp * ConditionalExpression
+  | SimpleCondition of Value * ComparisonOp * Value
+  | ComplexCondition of ConditionalExpression * BinaryOp * ConditionalExpression
 
 type Identifier = Identifier of string
 type Database = Database of string

@@ -160,7 +160,7 @@ run "res = restrict (auction) (true)"
 // 条件式がカラムの値がboolにキャストできない場合
 run "use tandp"
 run "res = restrict (auction) (date_bought)"
-// Failure: EvalError: string column name is not a conditional expression.
+// Failure: EvalError: single column name is not an conditional expression.
 
 // 条件式にbool以外のリテラルになっている場合
 run "use tandp"

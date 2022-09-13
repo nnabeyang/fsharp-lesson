@@ -42,8 +42,8 @@ let oppc = new OperatorPrecedenceParser<ConditionalExpression, unit, unit>()
 let pCondExpression = oppc.ExpressionParser
 let makeComparison (x: ConditionalExpression, op: ComparisonOp, y: ConditionalExpression) =
   match (x, y) with
-    | (Value vx, Value vy) -> SimpleComparison (vx, op, vy)
-    | _ -> Comparison (x, op, y)
+    | (Value vx, Value vy) -> SimpleCondition (vx, op, vy)
+    | _ -> ComplexCondition (x, ComparisonOp op, y)
   |> Function
 oppc.TermParser <- (pCondOprand .>> spaces) <|> between (str_ws "(") (str_ws ")") pCondExpression
 oppc.AddOperator(InfixOperator("<", spaces, 2, Associativity.Left, fun x y -> makeComparison(x, Lt, y)))
@@ -56,8 +56,8 @@ oppc.AddOperator(InfixOperator("<>", spaces, 1, Associativity.Left, fun x y ->  
 let oppl = new OperatorPrecedenceParser<ConditionalExpression, unit, unit>()
 let pLogical = oppl.ExpressionParser
 oppl.TermParser <- (pCondExpression .>> spaces) <|> between (str_ws "(") (str_ws ")") pLogical
-oppl.AddOperator(InfixOperator("and", spaces, 1, Associativity.Left, fun x y -> Logical (x, And, y) |> Function))
-oppl.AddOperator(InfixOperator("or", spaces, 1, Associativity.Left, fun x y -> Logical (x, Or, y) |> Function))
+oppl.AddOperator(InfixOperator("and", spaces, 1, Associativity.Left, fun x y -> ComplexCondition (x, LogicalOp And, y) |> Function))
+oppl.AddOperator(InfixOperator("or", spaces, 1, Associativity.Left, fun x y -> ComplexCondition (x, LogicalOp Or, y) |> Function))
 
 let pTerm, pTermRef = createParserForwardedToRef<Expression, unit>()
 let pProjectExpression = (str_ws "project") >>. (pTerm .>> spaces) .>>. pColumnList |>> Project

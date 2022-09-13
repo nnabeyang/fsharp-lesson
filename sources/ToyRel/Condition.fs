@@ -31,9 +31,8 @@ let rec condition rel cond =
     | Value value -> singleValue rel value
     | Function func ->
       match func with
-        | SimpleComparison (left, op, right) -> simple rel op left right
-        | Comparison (left, op, right) -> comparison rel op left right
-        | Logical (left, op, right) -> logical rel op left right
+        | SimpleCondition (left, op, right) -> simple rel op left right
+        | ComplexCondition (left, op, right) -> complex rel op left right
 // リテラルだけカラム名だけの式は条件式として扱わない
 and singleValue rel value =
   let valueTypeName = match value with
@@ -42,33 +41,23 @@ and singleValue rel value =
   (sprintf "single %s is not an conditional expression." valueTypeName)
   |> EvalError
   |> MyResult.Error
-and logical rel op left right = MyResult.result {
+and simple rel op left right = MyResult.result {
+  let! l = conditionalValue rel left
+  let! r = conditionalValue rel right
+  let! lType = Relation.getType rel left
+  let! rType = Relation.getType rel right
+  let! f =
+      if lType <> rType then
+        MyResult.Error (TypeError (sprintf "Type mismatch in conditional expression: %A <=> %A" lType rType))
+      else
+        (cmp op l r) |> MyResult.Ok
+  return f
+}
+and complex rel op left right = MyResult.result {
   let! l = condition rel left
   let! r = condition rel right
-  let f = cmpl op l r
-  return f
-}
-and simple rel op left right = MyResult.result {
-    let! l = conditionalValue rel left
-    let! r = conditionalValue rel right
-    let! lType = Relation.getValueType rel left
-    let! rType = Relation.getValueType rel right
-    let! f =
-      if lType <> rType then
-        MyResult.Error (TypeError (sprintf "Type mismatch in conditional expression: %A <=> %A" lType rType))
-      else
-        (cmp op l r) |> MyResult.Ok
-  return f
-}
-and comparison rel op left right = MyResult.result {
-    let! l = condition rel left
-    let! r = condition rel right
-    let! lType = Relation.getType rel left
-    let! rType = Relation.getType rel right
-    let! f =
-      if lType <> rType then
-        MyResult.Error (TypeError (sprintf "Type mismatch in conditional expression: %A <=> %A" lType rType))
-      else
-        (cmp op l r) |> MyResult.Ok
+  let f = match op with
+           | LogicalOp lop -> cmpl lop l r
+           | ComparisonOp cop -> cmp cop l r
   return f
 }
