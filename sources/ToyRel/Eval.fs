@@ -57,10 +57,7 @@ and joinExpression (left: Expression) (right: Expression) (cond: ConditionalExpr
 }
 and conditionalExpression (rel: Relation.T) cond =
   match (Condition.condition rel cond) with
-    | MyResult.Ok rowFunc ->
-      match rowFunc with
-        | Filter f -> Relation.restrict rel f
-        | ColFunc _ -> MyResult.Error (EvalError "non-boolean value is not a conditional expression.")
+    | MyResult.Ok f -> Relation.restrict rel f
     | MyResult.Error e -> MyResult.Error e
 
 // 指定したRelationの内容を標準出力する

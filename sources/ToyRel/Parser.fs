@@ -40,13 +40,18 @@ let pCondOprand: Parser<ConditionalExpression, unit> =
   |>> Value
 let oppc = new OperatorPrecedenceParser<ConditionalExpression, unit, unit>()
 let pCondExpression = oppc.ExpressionParser
+let makeComparison (x: ConditionalExpression, op: ComparisonOp, y: ConditionalExpression) =
+  match (x, y) with
+    | (Value vx, Value vy) -> SimpleComparison (vx, op, vy)
+    | _ -> Comparison (x, op, y)
+  |> Function
 oppc.TermParser <- (pCondOprand .>> spaces) <|> between (str_ws "(") (str_ws ")") pCondExpression
-oppc.AddOperator(InfixOperator("<", spaces, 2, Associativity.Left, fun x y -> Comparison (x, Lt, y) |> Function))
-oppc.AddOperator(InfixOperator("<=", spaces, 2, Associativity.Left, fun x y -> Comparison (x, Le, y) |> Function))
-oppc.AddOperator(InfixOperator("=", spaces, 1, Associativity.Left, fun x y -> Comparison (x, Eq, y) |> Function))
-oppc.AddOperator(InfixOperator(">", spaces, 2, Associativity.Left, fun x y -> Comparison (x, Gt, y) |> Function))
-oppc.AddOperator(InfixOperator(">=", spaces, 2, Associativity.Left, fun x y -> Comparison (x, Ge, y) |> Function))
-oppc.AddOperator(InfixOperator("<>", spaces, 1, Associativity.Left, fun x y -> Comparison (x, Ne, y) |> Function))
+oppc.AddOperator(InfixOperator("<", spaces, 2, Associativity.Left, fun x y -> makeComparison(x, Lt, y)))
+oppc.AddOperator(InfixOperator("<=", spaces, 2, Associativity.Left, fun x y -> makeComparison(x, Le, y)))
+oppc.AddOperator(InfixOperator("=", spaces, 1, Associativity.Left, fun x y ->  makeComparison(x, Eq, y)))
+oppc.AddOperator(InfixOperator(">", spaces, 2, Associativity.Left, fun x y ->  makeComparison(x, Gt, y)))
+oppc.AddOperator(InfixOperator(">=", spaces, 2, Associativity.Left, fun x y ->  makeComparison(x, Ge, y)))
+oppc.AddOperator(InfixOperator("<>", spaces, 1, Associativity.Left, fun x y ->  makeComparison(x, Ne, y)))
 
 let oppl = new OperatorPrecedenceParser<ConditionalExpression, unit, unit>()
 let pLogical = oppl.ExpressionParser

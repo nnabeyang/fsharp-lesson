@@ -152,20 +152,25 @@ run "print q15_2"
 
 // restrictのエラー
 
+// 単一の式
+run "use tandp"
+run "res = restrict (auction) (true)"
+// Failure: EvalError: sigle literal is not an conditional expression.
+
 // 条件式がカラムの値がboolにキャストできない場合
 run "use tandp"
 run "res = restrict (auction) (date_bought)"
-// Failure: EvalError: non-boolean value is not a conditional expression.
+// Failure: EvalError: string column name is not a conditional expression.
 
 // 条件式にbool以外のリテラルになっている場合
 run "use tandp"
 run "res = restrict (auction) (\"hello\")"
-//Failure: TypeError: non-boolean value is not a conditional expression.
+//Failure: TypeError: single literal is not a conditional expression.
 
 // 条件式にbool以外のリテラルになっている場合
 run "use tandp"
 run "res = restrict (stock) (date_out = \"INSTOCK\" and 1)"
-// Failure: TypeError: non-boolean value is cannot be computed with logical operators.
+// Failure: TypeError: single literal is not a conditional expression.
 
 // 条件式の型が違う場合(cell_priceは整数)
 run "use tandp"

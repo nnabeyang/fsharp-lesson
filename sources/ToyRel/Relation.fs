@@ -157,15 +157,17 @@ module Relation =
     with
       | :? System.Collections.Generic.KeyNotFoundException -> MyResult.Error (EvalError "column name is wrong")
 
+  let getValueType rel value =
+    match value with
+      | Literal literal ->
+        match literal with
+          | StrLiteral _ -> StrType
+          | IntLiteral _ -> IntType
+          | BoolLiteral _ -> BoolType
+        |> MyResult.Ok
+      | ColumnName name -> getTypeByColName rel name
+
   let getType rel cond =
     match cond with
-      | Value value ->
-        match value with
-          | Literal literal ->
-            match literal with
-              | StrLiteral _ -> StrType
-              | IntLiteral _ -> IntType
-              | BoolLiteral _ -> BoolType
-            |> MyResult.Ok
-          | ColumnName name -> getTypeByColName rel name
+      | Value value -> getValueType rel value
       | Function _ -> BoolType |> MyResult.Ok

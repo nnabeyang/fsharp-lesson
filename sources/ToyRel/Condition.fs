@@ -7,41 +7,58 @@ open Relation
 
 let cmp (op: ComparisonOp) l r = fun row -> evalComp op (l row) (r row)
 let cmpl op l r = fun row -> evalCompl op (l row) (r row)
-
-let rec condition rel cond =
-  match cond with
-    | Value v -> unary rel v
-    | Function func ->
-      match func with
-        | Comparison (left, op, right) -> comparison rel op left right
-        | Logical (left, op, right) -> logical rel op left right
-and unary rel expr =
+let conditionalValue rel expr =
   match expr with
     | Literal v ->
       match v with
-        | StrLiteral value -> (fun (_: ObjectSeries<string>) -> value |> StrValue) |> ColFunc
-        | IntLiteral value -> (fun (_: ObjectSeries<string>) -> value |> IntValue) |> ColFunc
-        | BoolLiteral value -> (fun (_: ObjectSeries<string>) -> value) |> Filter
+        | StrLiteral value -> (fun (_: ObjectSeries<string>) -> value |> StrValue)
+        | IntLiteral value -> (fun (_: ObjectSeries<string>) -> value |> IntValue)
+        | BoolLiteral value -> (fun (_: ObjectSeries<string>) -> value |> BoolValue)
       |> MyResult.Ok
     | ColumnName colName -> MyResult.result {
         let name = Relation.effectiveColumnName rel colName
         let! t = Relation.getTypeByColName rel colName
-        let! f = match t with
-                  | StrType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<string>(name)) |> StrValue) |> ColFunc
-                  | IntType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<int>(name)) |> IntValue) |> ColFunc
-                  | DateTimeType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<System.DateTime>(name)) |> DateTimeValue) |> ColFunc
-                  | BoolType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<bool>(name))) |> Filter
-                |> MyResult.Ok
+        let f = match t with
+                  | StrType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<string>(name)) |> StrValue)
+                  | IntType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<int>(name)) |> IntValue)
+                  | DateTimeType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<System.DateTime>(name)) |> DateTimeValue)
+                  | BoolType -> (fun (row: ObjectSeries<string>) -> (row.GetAs<bool>(name)) |> BoolValue)
         return f
       }
+
+let rec condition rel cond =
+  match cond with
+    | Value value -> singleValue rel value
+    | Function func ->
+      match func with
+        | SimpleComparison (left, op, right) -> simple rel op left right
+        | Comparison (left, op, right) -> comparison rel op left right
+        | Logical (left, op, right) -> logical rel op left right
+// リテラルだけカラム名だけの式は条件式として扱わない
+and singleValue rel value =
+  let valueTypeName = match value with
+                      | Literal  _ -> "literal"
+                      | ColumnName _ -> "column name"
+  (sprintf "single %s is not an conditional expression." valueTypeName)
+  |> EvalError
+  |> MyResult.Error
 and logical rel op left right = MyResult.result {
   let! l = condition rel left
   let! r = condition rel right
-  let! f =
-    match (l, r) with
-      | (Filter lf, Filter rf) -> (cmpl op lf rf) |> MyResult.Ok
-      | (_, _) -> MyResult.Error (TypeError "non-boolean value is cannot be computed with logical operators.")
-  return (Filter f)
+  let f = cmpl op l r
+  return f
+}
+and simple rel op left right = MyResult.result {
+    let! l = conditionalValue rel left
+    let! r = conditionalValue rel right
+    let! lType = Relation.getValueType rel left
+    let! rType = Relation.getValueType rel right
+    let! f =
+      if lType <> rType then
+        MyResult.Error (TypeError (sprintf "Type mismatch in conditional expression: %A <=> %A" lType rType))
+      else
+        (cmp op l r) |> MyResult.Ok
+  return f
 }
 and comparison rel op left right = MyResult.result {
     let! l = condition rel left
@@ -52,11 +69,6 @@ and comparison rel op left right = MyResult.result {
       if lType <> rType then
         MyResult.Error (TypeError (sprintf "Type mismatch in conditional expression: %A <=> %A" lType rType))
       else
-      match (l, r) with
-        | (Filter lf, Filter rf) -> (cmp op lf rf) |> MyResult.Ok
-        | (ColFunc lf, ColFunc rf) -> (cmp op lf rf) |> MyResult.Ok
-        | (_, _) ->
-          // lTypeとrTypeが等しいときは両方ともFilterかColFuncになる
-          MyResult.Error (TypeError "no reach")
-  return (Filter f)
+        (cmp op l r) |> MyResult.Ok
+  return f
 }
