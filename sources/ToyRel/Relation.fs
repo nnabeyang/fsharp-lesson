@@ -46,7 +46,7 @@ module Relation =
     let df = readCsv ident |> toFrame
     df.Print()
 
-  // 指定したRelationの内容を標準出力する
+  // 指定したRelationのカラム名の名前を変更した新しいRelationを新たに作る
   let rename ident colName newColName =
     let renameFunc name newName = fun s ->
       if s = name then
