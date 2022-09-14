@@ -69,6 +69,7 @@ type Expression =
   | Difference of BinaryExpression
   | Product of BinaryExpression
   | Union of BinaryExpression
+  | Intersect of BinaryExpression
   | Restrict of Expression * ConditionalExpression
   | Join of Expression * Expression * ConditionalExpression
 and ProjectExpression = Expression * string list

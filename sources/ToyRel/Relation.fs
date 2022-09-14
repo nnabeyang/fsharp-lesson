@@ -119,6 +119,29 @@ module Relation =
     return d
   }
 
+  let takeIntersect rel1 rel2 =
+    match (checkUnionCompatible rel1 rel2) with
+      | Some e -> MyResult.Error e
+      | None ->
+        let (Relation df2) = rel2
+        let (Relation df1) = rel1
+        let  valueSet = df1.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
+        valueSet.IntersectWith df2.RowsDense.Values
+        let values = valueSet |> List
+        values
+          |> Series.ofValues
+          |> Frame.ofRows
+          |> Relation
+          |> MyResult.Ok
+  
+  // 2つのRelationのintersectをとった新しいReletionを作る
+  let intersect left right = MyResult.result {
+    let! l = left
+    let! r = right
+    let! d = takeIntersect l r
+    return d
+  }
+
   // 2つのリレーション分のカラム名を取得する。
   // ただし、カラム名が重複する場合は右側のカラム名にprefixを付ける。
   let combinedColumns (Relation df1) (Relation df2) prefix =

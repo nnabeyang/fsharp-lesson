@@ -36,6 +36,7 @@ let rec expression expr =
     | Difference binaryExpr -> differenceExpression binaryExpr
     | Product binaryExpr -> productExpression binaryExpr
     | Union binaryExpr -> unionExpression binaryExpr
+    | Intersect binaryExpr -> intersectExpression binaryExpr
     | Identifier basename -> Relation.load basename
 and  projectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
@@ -50,6 +51,9 @@ and productExpression (binaryExpr: BinaryExpression) =
 and unionExpression (binaryExpr : BinaryExpression) =
   let (left, right) = binaryExpr
   Relation.union (expression left) (expression right)
+and intersectExpression (binaryExpr : BinaryExpression) =
+  let (left, right) = binaryExpr
+  Relation.intersect (expression left) (expression right)
 and restrictExpression expr cond =
   match (expression expr) with
     | MyResult.Ok rel -> conditionalExpression rel cond

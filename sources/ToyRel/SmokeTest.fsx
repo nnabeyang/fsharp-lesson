@@ -465,3 +465,15 @@ run "print r1"
 2 -> Human Resources 
 3 -> Production  
 *)
+
+// Intersectの例
+run "use wikipedia"
+run "emp_dept = project (Employee) DeptName"
+run "dept_dept = project (Dept) DeptName"
+run "r1 = (emp_dept) intersect (dept_dept)"
+run "print r1"
+(*
+     DeptName 
+0 -> Finance  
+1 -> Sales   
+*)

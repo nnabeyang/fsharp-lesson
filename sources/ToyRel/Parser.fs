@@ -75,6 +75,7 @@ oppe.TermParser <- pTerm
 oppe.AddOperator(InfixOperator("difference", spaces, 1, Associativity.Left, fun x y -> Difference (x,y)))
 oppe.AddOperator(InfixOperator("product", spaces, 1, Associativity.Left, fun x y -> Product (x,y)))
 oppe.AddOperator(InfixOperator("union", spaces, 1, Associativity.Left, fun x y -> Union (x,y)))
+oppe.AddOperator(InfixOperator("intersect", spaces, 1, Associativity.Left, fun x y -> Intersect (x,y)))
 
 let pUseStatement = (str_ws "use") >>. (pIdentifier |>> Database.Database |>> UseStatement)
 let pPrintStatement = (str_ws "print") >>. (pIdentifier |>> Identifier.Identifier |>> PrintStatement)
