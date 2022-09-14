@@ -66,27 +66,56 @@ module Relation =
     let keys2 = df2.ColumnKeys |> Seq.toList
     keys1 = keys2
   
-  
-  let takeDifference rel1 rel2 =
+  let checkUnionCompatible rel1 rel2 =
     if not (checkColTypes rel1 rel2) then
-      MyResult.Error (TypeError "column types do not match")
+      Some (TypeError "column types do not match")
     else if not (checkColKeyNames rel1 rel2) then
-      MyResult.Error (EvalError "column names do not match")
+      Some (EvalError "column names do not match")
     else
-      let (Relation df2) = rel2
-      let (Relation df1) = rel1
-      let valueSet = df2.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
-      df1.Rows.Values
-        |> Seq.filter (fun s -> not (valueSet.Contains s))
-        |> Series.ofValues
-        |> Frame.ofRows
-        |> Relation
-        |> MyResult.Ok
+      None
+      
+  let takeDifference rel1 rel2 =
+    match (checkUnionCompatible rel1 rel2) with
+      | Some e -> MyResult.Error e
+      | None ->
+        let (Relation df2) = rel2
+        let (Relation df1) = rel1
+        let valueSet = df2.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
+        df1.Rows.Values
+          |> Seq.filter (fun s -> not (valueSet.Contains s))
+          |> Series.ofValues
+          |> Frame.ofRows
+          |> Relation
+          |> MyResult.Ok
 
+  // 2つのRelationのdifferenceをとった新しいReletionを作る
   let difference left right = MyResult.result {
     let! l = left
     let! r = right
     let! d = takeDifference l r
+    return d
+  }
+
+  let takeUnion rel1 rel2 =
+    match (checkUnionCompatible rel1 rel2) with
+      | Some e -> MyResult.Error e
+      | None ->
+        let (Relation df2) = rel2
+        let (Relation df1) = rel1
+        let  valueSet = df1.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
+        valueSet.UnionWith df2.RowsDense.Values
+        let values = valueSet |> List
+        values
+          |> Series.ofValues
+          |> Frame.ofRows
+          |> Relation
+          |> MyResult.Ok
+  
+  // 2つのRelationのunionをとった新しいReletionを作る
+  let union left right = MyResult.result {
+    let! l = left
+    let! r = right
+    let! d = takeUnion l r
     return d
   }
 

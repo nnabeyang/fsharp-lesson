@@ -451,3 +451,17 @@ run "use master"
 run "rename (シラバス.専門) 科目"
 //rename後のRelation名を指定する
 // run "print zzworc"
+
+// Unionの例
+run "use wikipedia"
+run "emp_dept = project (Employee) DeptName"
+run "dept_dept = project (Dept) DeptName"
+run "r1 = (emp_dept) union (dept_dept)"
+run "print r1"
+(*
+     DeptName        
+0 -> Finance         
+1 -> Sales           
+2 -> Human Resources 
+3 -> Production  
+*)
