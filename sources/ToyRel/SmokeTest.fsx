@@ -446,3 +446,8 @@ run "print r3"
     branch size colour sell_price 
 0 -> L2     M    NAVY   13.50 
 *)
+
+run "use master"
+run "rename (シラバス.専門) 科目"
+//rename後のRelation名を指定する
+// run "print zzworc"

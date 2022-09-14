@@ -46,6 +46,17 @@ module Relation =
     let df = readCsv ident |> toFrame
     df.Print()
 
+  // 指定したRelationの内容を標準出力する
+  let rename ident colName newColName =
+    let renameFunc name newName = fun s ->
+      if s = name then
+        newName
+      else
+        s
+    let df = readCsv ident |> toFrame
+    df.RenameColumns (renameFunc colName newColName)
+    Relation df
+
   let checkColTypes (Relation df1) (Relation df2) =
     let cts1 = df1.ColumnTypes |> Seq.toList
     let cts2 = df2.ColumnTypes |> Seq.toList

@@ -18,13 +18,14 @@ let pIdentifier = regex identifierRegex
 let pSBracketColumn =
   let notSBracket s = s <> '[' && s <> ']'
   (str "[") >>. many1Satisfy notSBracket .>> (str "]")
-let pColumn = pIdentifier <|> pSBracketColumn
+let pSimpleColumn = pIdentifier <|> pSBracketColumn
 let pPrefix = regex prefixRegex <|> pSBracketColumn
-let pPrefixedColumn =
-  attempt (pPrefix .>> str "." .>>. pColumn) |>> Prefixed
-  <|> attempt (pColumn |>> Simple)
+let pPrefixedColumn = pPrefix .>> str "." .>>. pSimpleColumn
+let pColumn =
+  attempt pPrefixedColumn |>> Prefixed
+  <|> attempt (pSimpleColumn |>> Simple)
 let pColumnList =
-  let column_ws = pColumn .>> spaces
+  let column_ws = pSimpleColumn .>> spaces
   sepBy column_ws (str_ws ",")
 let pInt = (regex "[\-\+]?[0-9]+") |>> int |>> (fun x -> x) |>> IntLiteral
 let pBool = (str "true" <|> str "false") |>> (fun x -> x = "true") |>> BoolLiteral
@@ -35,7 +36,7 @@ let pCondStr =
 let pCondOprand: Parser<ConditionalExpression, unit> =
   (
     (pInt  <|> pCondStr <|> pBool) |>> Literal
-    <|> (pPrefixedColumn |>> ColumnName)
+    <|> (pColumn |>> ColumnName)
   )
   |>> Value
 let oppc = new OperatorPrecedenceParser<ConditionalExpression, unit, unit>()
@@ -76,12 +77,14 @@ oppe.AddOperator(InfixOperator("product", spaces, 1, Associativity.Left, fun x y
 
 let pUseStatement = (str_ws "use") >>. (pIdentifier |>> Database.Database |>> UseStatement)
 let pPrintStatement = (str_ws "print") >>. (pIdentifier |>> Identifier.Identifier |>> PrintStatement)
+let pRenameStatement = (str_ws "rename") >>. ((str_ws "(") >>. pPrefixedColumn .>> (str_ws ")")) .>>. pSimpleColumn |>> (fun ((x, y), z) -> Rename (Identifier.Identifier x, y, z))
 let pListStatement = str "list" |>> fun _ -> ListStatement
 let pAssignmentStatement =
   ((pIdentifier .>> spaces) |>> Identifier.Identifier) .>>. (str_ws "=" >>. pExpression) |>> AssignmentStatement
 let pExpressionStatement = pExpression |>> ExpressionStatement
 let pStatement =
   pPrintStatement
+  <|> pRenameStatement
   <|> pUseStatement
   <|> pListStatement
   <|> pExpressionStatement 

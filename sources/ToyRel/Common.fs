@@ -76,6 +76,7 @@ and BinaryExpression = Expression * Expression
 type Statement =
   | ExpressionStatement of Expression
   | PrintStatement of Identifier
+  | Rename of Identifier * string * string
   | AssignmentStatement of Assignment
   | ListStatement
   | UseStatement of Database

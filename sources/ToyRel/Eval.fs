@@ -64,6 +64,11 @@ and conditionalExpression (rel: Relation.T) cond =
 let printStatement ident =
   Relation.print ident
   Nothing
+let renameStatement ident colName newColName =
+  let rel = Relation.rename ident colName newColName
+  let ident = randomBaseName()
+  Relation.save rel ident
+  Creation ident
 // データベース内のRelationの一覧を標準出力する
 let listStatement() =
   printfn "%s" (Relation.list() |> String.concat Environment.NewLine)
@@ -93,6 +98,7 @@ let useStatement newValue =
 let evalStatement stmt =
   match stmt with
     | PrintStatement ident -> printStatement ident
+    | Rename (ident, colName, newColName) -> renameStatement ident colName newColName
     | ExpressionStatement expr -> expressionStatement expr
     | AssignmentStatement assignment -> assignmentStatement assignment
     | ListStatement -> listStatement()
