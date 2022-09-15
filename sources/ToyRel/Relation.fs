@@ -75,72 +75,53 @@ module Relation =
       None
       
   let takeDifference rel1 rel2 =
-    match (checkUnionCompatible rel1 rel2) with
-      | Some e -> MyResult.Error e
-      | None ->
-        let (Relation df2) = rel2
-        let (Relation df1) = rel1
-        let valueSet = df2.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
-        df1.Rows.Values
-          |> Seq.filter (fun s -> not (valueSet.Contains s))
-          |> Series.ofValues
-          |> Frame.ofRows
-          |> Relation
-          |> MyResult.Ok
+    let (Relation df2) = rel2
+    let (Relation df1) = rel1
+    let valueSet = df2.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
+    df1.Rows.Values
+      |> Seq.filter (fun s -> not (valueSet.Contains s))
+      |> Series.ofValues
+      |> Frame.ofRows
+      |> Relation
+  
+  let takeUnion rel1 rel2 =
+    let (Relation df2) = rel2
+    let (Relation df1) = rel1
+    let  valueSet = df1.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
+    valueSet.UnionWith df2.RowsDense.Values
+    let values = valueSet |> List
+    values
+      |> Series.ofValues
+      |> Frame.ofRows
+      |> Relation
+  
+  let takeIntersect rel1 rel2 =
+    let (Relation df2) = rel2
+    let (Relation df1) = rel1
+    let  valueSet = df1.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
+    valueSet.IntersectWith df2.RowsDense.Values
+    let values = valueSet |> List
+    values
+      |> Series.ofValues
+      |> Frame.ofRows
+      |> Relation
+  
+  let calcUnionCompatible left right (f: T -> T -> T) = MyResult.result {
+    let! l = left
+    let! r = right
+    let! d =
+      match (checkUnionCompatible l r) with
+        | Some e -> MyResult.Error e
+        | None -> f l r |> MyResult.Ok
+    return d
+  }
 
   // 2つのRelationのdifferenceをとった新しいReletionを作る
-  let difference left right = MyResult.result {
-    let! l = left
-    let! r = right
-    let! d = takeDifference l r
-    return d
-  }
-
-  let takeUnion rel1 rel2 =
-    match (checkUnionCompatible rel1 rel2) with
-      | Some e -> MyResult.Error e
-      | None ->
-        let (Relation df2) = rel2
-        let (Relation df1) = rel1
-        let  valueSet = df1.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
-        valueSet.UnionWith df2.RowsDense.Values
-        let values = valueSet |> List
-        values
-          |> Series.ofValues
-          |> Frame.ofRows
-          |> Relation
-          |> MyResult.Ok
-  
+  let difference left right = calcUnionCompatible left right takeDifference
   // 2つのRelationのunionをとった新しいReletionを作る
-  let union left right = MyResult.result {
-    let! l = left
-    let! r = right
-    let! d = takeUnion l r
-    return d
-  }
-
-  let takeIntersect rel1 rel2 =
-    match (checkUnionCompatible rel1 rel2) with
-      | Some e -> MyResult.Error e
-      | None ->
-        let (Relation df2) = rel2
-        let (Relation df1) = rel1
-        let  valueSet = df1.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
-        valueSet.IntersectWith df2.RowsDense.Values
-        let values = valueSet |> List
-        values
-          |> Series.ofValues
-          |> Frame.ofRows
-          |> Relation
-          |> MyResult.Ok
-  
+  let union left right = calcUnionCompatible left right takeUnion
   // 2つのRelationのintersectをとった新しいReletionを作る
-  let intersect left right = MyResult.result {
-    let! l = left
-    let! r = right
-    let! d = takeIntersect l r
-    return d
-  }
+  let intersect left right = calcUnionCompatible left right takeIntersect
 
   // 2つのリレーション分のカラム名を取得する。
   // ただし、カラム名が重複する場合は右側のカラム名にprefixを付ける。
