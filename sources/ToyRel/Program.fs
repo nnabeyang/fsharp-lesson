@@ -2,6 +2,7 @@
 open ReCJKLine
 open Parser
 open FParsec
+open Relation
 open Eval
 open System
 

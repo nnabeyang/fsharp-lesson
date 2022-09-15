@@ -26,6 +26,19 @@ let evalComp op l r =
     | Le -> l <= r
     | Ge -> l >= r
 
+type Identifier = Identifier of string
+type RelationName =
+  | Identifier of Identifier
+  | Last
+
+let lastRelation = ref (Identifier.Identifier "")
+
+// Relation名をIdentifierに変換する。特に@lastの場合は設定されている値を返す。
+let relationIdentifier relName =
+  match relName with
+    | Identifier ident -> ident
+    | Last -> lastRelation.Value
+
 type ConditionalLiteral =
   | IntLiteral of int
   | StrLiteral of string
@@ -43,18 +56,18 @@ and Value =
   | Literal of ConditionalLiteral
   | ColumnName of ColumnName
 and ColumnName =
-  | Prefixed of string * string
+  | Prefixed of RelationName * string
   | Simple of string
 and Function =
   | SimpleCondition of Value * ComparisonOp * Value
   | ComplexCondition of ConditionalExpression * BinaryOp * ConditionalExpression
 
-type Identifier = Identifier of string
 type Database = Database of string
 
 let toString column =
   match column with
-    | Prefixed (prefix, name) ->
+    | Prefixed (relName, name) ->
+      let (Identifier.Identifier prefix) = relationIdentifier relName
       sprintf "%s.%s" prefix name
     | Simple name -> name
 
@@ -64,7 +77,7 @@ let dropPrefix column =
     | Simple name -> name
 
 type Expression =
-  | Identifier of Identifier
+  | Identifier of RelationName
   | Project of ProjectExpression
   | Difference of BinaryExpression
   | Product of BinaryExpression
@@ -77,8 +90,8 @@ and BinaryExpression = Expression * Expression
 
 type Statement =
   | ExpressionStatement of Expression
-  | PrintStatement of Identifier
-  | Rename of Identifier * string * string
+  | PrintStatement of RelationName
+  | Rename of RelationName * string * string
   | AssignmentStatement of Assignment
   | ListStatement
   | UseStatement of Database

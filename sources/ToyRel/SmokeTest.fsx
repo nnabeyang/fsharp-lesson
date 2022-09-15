@@ -449,8 +449,17 @@ run "print r3"
 
 run "use master"
 run "rename (シラバス.専門) 科目"
-//rename後のRelation名を指定する
-// run "print zzworc"
+run "print @last"
+(*
+     名前     場所  科目 学年 
+0 -> 線形代数   101 数学 1  
+1 -> 解析概論   103 数学 1  
+2 -> 解析力学   301 物理 1  
+3 -> 電磁気    304 物理 1  
+4 -> 集合位相   101 数学 2  
+5 -> 多様体    302 数学 2  
+6 -> 物理学実験1 301 物理 1  
+*)
 
 // Unionの例
 run "use wikipedia"
@@ -476,4 +485,52 @@ run "print r1"
      DeptName 
 0 -> Finance  
 1 -> Sales   
+*)
+
+// @lastの例
+// 生成された場合
+run "use master"
+run "project (シラバス) 専門, 学年"
+run "print @last"
+(*
+     専門 学年 
+0 -> 数学 1  
+1 -> 物理 1  
+2 -> 数学 2  
+*)
+// assignされた場合
+run "use wikipedia"
+run "last_check = project (Employee) DeptName"
+run "print @last"
+(*
+     DeptName        
+0 -> Finance         
+1 -> Sales           
+2 -> Human Resources 
+*)
+// projectに使用
+run "use tandp"
+run "restrict (stock) (branch = \"L1\" and date_out = \"INSTOCK\")"
+run "project (@last) size, colour, sell_price"
+run "print @last"
+(*
+     size colour sell_price 
+0 -> M    WHITE  15.50    
+*)
+
+// rename
+run "use master"
+run "project (シラバス) 名前, 場所, 専門, 学年"
+run "print @last"
+run "rename (@last.場所) 教室番号"
+run "print @last"
+(*
+     名前     教室番号 専門 
+0 -> 線形代数   101  数学 
+1 -> 解析概論   103  数学 
+2 -> 解析力学   301  物理 
+3 -> 電磁気    304  物理 
+4 -> 集合位相   101  数学 
+5 -> 多様体    302  数学 
+6 -> 物理学実験1 301  物理 
 *)

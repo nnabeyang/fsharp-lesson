@@ -29,6 +29,7 @@ module Relation =
   // Relationを保存する。名前が衝突した場合は上書き保存する。  
   let save relation ident =
     let df = toFrame relation
+    lastRelation.Value <- ident
     df.SaveCsv ((databasePath database.Value ident), includeRowKeys = false)
   
   // Relationからcolsで指定したカラムだけ残したRelationを新たに作る

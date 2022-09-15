@@ -14,13 +14,16 @@ let firstIdentifierRegex = "[_a-zA-Z]|\p{IsHiragana}|\p{IsKatakana}|\p{IsCJKUnif
 let identifierRegex = sprintf "(%s)([0-9\.]|%s)*" firstIdentifierRegex firstIdentifierRegex
 let prefixRegex = sprintf "(%s)([0-9]|%s)*" firstIdentifierRegex firstIdentifierRegex
 
+let pLast = str "@last" |>> (fun _ -> RelationName.Last)
 let pIdentifier = regex identifierRegex
 let pSBracketColumn =
   let notSBracket s = s <> '[' && s <> ']'
   (str "[") >>. many1Satisfy notSBracket .>> (str "]")
 let pSimpleColumn = pIdentifier <|> pSBracketColumn
 let pPrefix = regex prefixRegex <|> pSBracketColumn
-let pPrefixedColumn = pPrefix .>> str "." .>>. pSimpleColumn
+let pPrefixIdent =  pPrefix|>> Identifier.Identifier |>> RelationName.Identifier
+let pPrefixName = pLast <|> pPrefixIdent
+let pPrefixedColumn = pPrefixName .>> str "." .>>. pSimpleColumn
 let pColumn =
   attempt pPrefixedColumn |>> Prefixed
   <|> attempt (pSimpleColumn |>> Simple)
@@ -65,7 +68,9 @@ let pProjectExpression = (str_ws "project") >>. (pTerm .>> spaces) .>>. pColumnL
 let pRestrictExpression = (str_ws "restrict") >>. (pTerm .>> spaces) .>>. ((str_ws "(") >>. pLogical .>> (str_ws ")")) |>> Restrict
 let pJoinExpression =
   pipe3 ((str_ws "join") >>. (pTerm .>> spaces)) (pTerm .>> spaces) ((str_ws "(") >>. pLogical .>> (str_ws ")")) (fun x y z -> Join (x, y, z))
-let pIdentifierExpression = pIdentifier |>> Identifier.Identifier |>> Expression.Identifier
+let pRelationIdent =  pIdentifier |>> Identifier.Identifier |>> RelationName.Identifier
+let pRelationName = pLast <|> pRelationIdent
+let pIdentifierExpression = pRelationName |>> Expression.Identifier
 let pTermExpression = pProjectExpression <|> pRestrictExpression <|>  pIdentifierExpression
 pTermRef.Value <- between (str_ws "(") (str_ws ")")  pTermExpression <|> pProjectExpression <|> pRestrictExpression <|> pJoinExpression
 
@@ -78,8 +83,8 @@ oppe.AddOperator(InfixOperator("union", spaces, 1, Associativity.Left, fun x y -
 oppe.AddOperator(InfixOperator("intersect", spaces, 1, Associativity.Left, fun x y -> Intersect (x,y)))
 
 let pUseStatement = (str_ws "use") >>. (pIdentifier |>> Database.Database |>> UseStatement)
-let pPrintStatement = (str_ws "print") >>. (pIdentifier |>> Identifier.Identifier |>> PrintStatement)
-let pRenameStatement = (str_ws "rename") >>. ((str_ws "(") >>. pPrefixedColumn .>> (str_ws ")")) .>>. pSimpleColumn |>> (fun ((x, y), z) -> Rename (Identifier.Identifier x, y, z))
+let pPrintStatement = (str_ws "print") >>. pRelationName |>> PrintStatement
+let pRenameStatement = (str_ws "rename") >>. ((str_ws "(") >>. pPrefixedColumn .>> (str_ws ")")) .>>. pSimpleColumn |>> (fun ((x, y), z) -> Rename (x, y, z))
 let pListStatement = str "list" |>> fun _ -> ListStatement
 let pAssignmentStatement =
   ((pIdentifier .>> spaces) |>> Identifier.Identifier) .>>. (str_ws "=" >>. pExpression) |>> AssignmentStatement

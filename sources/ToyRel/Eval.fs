@@ -22,10 +22,12 @@ let randomString length =
   String.init length (fun _ -> char (random.Next( (int 'a'), (int 'z') + 1)) |> sprintf "%c")
 let randomBaseName() = "zz" + (randomString 4) |> Identifier.Identifier
 
-// リレーションの名前を取得する。Expressionが式になっている場合は名前がないので"tmp"を返す
+// 式からリレーションの名前を文字列で取得する。Expressionが式になっている場合は名前がないので"tmp"を返す
 let relationName (expr: Expression) =
   match expr with
-    | Identifier (Identifier.Identifier name) -> name
+    | Identifier relName ->
+      let (Identifier.Identifier name) = relationIdentifier relName
+      name
     | _ -> "tmp"
 
 let rec expression expr =
@@ -37,7 +39,7 @@ let rec expression expr =
     | Product binaryExpr -> productExpression binaryExpr
     | Union binaryExpr -> unionExpression binaryExpr
     | Intersect binaryExpr -> intersectExpression binaryExpr
-    | Identifier basename -> Relation.load basename
+    | Identifier basename -> Relation.load (relationIdentifier basename)
 and  projectExpression (expr : ProjectExpression) =
   let (ident, cols) = expr
   expression ident |> MyResult.bind (Relation.project cols)
@@ -72,8 +74,8 @@ and conditionalExpression (rel: Relation.T) cond =
 let printStatement ident =
   Relation.print ident
   Nothing
-let renameStatement ident colName newColName =
-  let rel = Relation.rename ident colName newColName
+let renameStatement (relName: RelationName) colName newColName =
+  let rel = Relation.rename (relationIdentifier relName) colName newColName
   let ident = randomBaseName()
   Relation.save rel ident
   Creation ident
@@ -105,8 +107,8 @@ let useStatement newValue =
 // Statementを評価する
 let evalStatement stmt =
   match stmt with
-    | PrintStatement ident -> printStatement ident
-    | Rename (ident, colName, newColName) -> renameStatement ident colName newColName
+    | PrintStatement relationName -> printStatement (relationIdentifier relationName)
+    | Rename (relName, colName, newColName) -> renameStatement relName colName newColName
     | ExpressionStatement expr -> expressionStatement expr
     | AssignmentStatement assignment -> assignmentStatement assignment
     | ListStatement -> listStatement()
