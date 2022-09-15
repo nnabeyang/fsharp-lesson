@@ -84,7 +84,7 @@ module Relation =
         | None ->
           let (Relation df1) = l
           let (Relation df2) = r
-          op df1.Rows.Values df2.Rows.Values
+          op df1.Rows.Values (df2.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet)
             |> Series.ofValues
             |> Frame.ofRows
             |> Relation
@@ -92,19 +92,15 @@ module Relation =
     return d
   }
   
-  let differenceCore values1 values2 =
-    let valueSet = values2 |> Seq.toList<ObjectSeries<string>> |> HashSet
-    values1
-      |> Seq.filter (fun s -> not (valueSet.Contains s))
-  let unionCore values1 values2 =
-    let valueSet = values1 |> Seq.toList<ObjectSeries<string>> |> HashSet
-    valueSet.UnionWith values2
-    valueSet |> List
+  let differenceCore values1 (values2: HashSet<ObjectSeries<string>>) =
+    values1 |> Seq.filter (fun s -> not (values2.Contains s))
+  let unionCore values1 (values2: HashSet<ObjectSeries<string>>) = 
+    values2.UnionWith values1
+    values2
   
-  let intersectCore values1 values2 =
-    let valueSet = values1 |> Seq.toList<ObjectSeries<string>> |> HashSet
-    valueSet.IntersectWith values2
-    valueSet |> List
+  let intersectCore values1 (values2: HashSet<ObjectSeries<string>>) =
+    values2.IntersectWith values1
+    values2
 
   // 2つのRelationのdifferenceをとった新しいReletionを作る
   let difference left right = unionLikeInternal differenceCore left right
