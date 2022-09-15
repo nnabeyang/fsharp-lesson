@@ -74,54 +74,43 @@ module Relation =
     else
       None
       
-  let takeDifference rel1 rel2 =
-    let (Relation df2) = rel2
-    let (Relation df1) = rel1
-    let valueSet = df2.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
-    df1.Rows.Values
-      |> Seq.filter (fun s -> not (valueSet.Contains s))
-      |> Series.ofValues
-      |> Frame.ofRows
-      |> Relation
-  
-  let takeUnion rel1 rel2 =
-    let (Relation df2) = rel2
-    let (Relation df1) = rel1
-    let  valueSet = df1.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
-    valueSet.UnionWith df2.RowsDense.Values
-    let values = valueSet |> List
-    values
-      |> Series.ofValues
-      |> Frame.ofRows
-      |> Relation
-  
-  let takeIntersect rel1 rel2 =
-    let (Relation df2) = rel2
-    let (Relation df1) = rel1
-    let  valueSet = df1.Rows.Values |> Seq.toList<ObjectSeries<string>> |> HashSet
-    valueSet.IntersectWith df2.RowsDense.Values
-    let values = valueSet |> List
-    values
-      |> Series.ofValues
-      |> Frame.ofRows
-      |> Relation
-  
-  let calcUnionCompatible left right (f: T -> T -> T) = MyResult.result {
+  let unionLikeInternal op left right = MyResult.result {
     let! l = left
     let! r = right
     let! d =
       match (checkUnionCompatible l r) with
         | Some e -> MyResult.Error e
-        | None -> f l r |> MyResult.Ok
+        | None ->
+          let (Relation df1) = l
+          let (Relation df2) = r
+          op df1.Rows.Values df2.Rows.Values
+            |> Series.ofValues
+            |> Frame.ofRows
+            |> Relation
+            |> MyResult.Ok
     return d
   }
+  
+  let differenceCore values1 values2 =
+    let valueSet = values2 |> Seq.toList<ObjectSeries<string>> |> HashSet
+    values1
+      |> Seq.filter (fun s -> not (valueSet.Contains s))
+  let unionCore values1 values2 =
+    let valueSet = values1 |> Seq.toList<ObjectSeries<string>> |> HashSet
+    valueSet.UnionWith values2
+    valueSet |> List
+  
+  let intersectCore values1 values2 =
+    let valueSet = values1 |> Seq.toList<ObjectSeries<string>> |> HashSet
+    valueSet.IntersectWith values2
+    valueSet |> List
 
   // 2つのRelationのdifferenceをとった新しいReletionを作る
-  let difference left right = calcUnionCompatible left right takeDifference
+  let difference left right = unionLikeInternal differenceCore left right
   // 2つのRelationのunionをとった新しいReletionを作る
-  let union left right = calcUnionCompatible left right takeUnion
+  let union left right = unionLikeInternal unionCore left right
   // 2つのRelationのintersectをとった新しいReletionを作る
-  let intersect left right = calcUnionCompatible left right takeIntersect
+  let intersect left right = unionLikeInternal intersectCore left right
 
   // 2つのリレーション分のカラム名を取得する。
   // ただし、カラム名が重複する場合は右側のカラム名にprefixを付ける。
