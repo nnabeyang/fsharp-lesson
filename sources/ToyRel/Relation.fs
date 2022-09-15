@@ -103,11 +103,11 @@ module Relation =
     values2
 
   // 2つのRelationのdifferenceをとった新しいReletionを作る
-  let difference left right = unionLikeInternal differenceCore left right
+  let difference = unionLikeInternal differenceCore
   // 2つのRelationのunionをとった新しいReletionを作る
-  let union left right = unionLikeInternal unionCore left right
+  let union = unionLikeInternal unionCore
   // 2つのRelationのintersectをとった新しいReletionを作る
-  let intersect left right = unionLikeInternal intersectCore left right
+  let intersect = unionLikeInternal intersectCore
 
   // 2つのリレーション分のカラム名を取得する。
   // ただし、カラム名が重複する場合は右側のカラム名にprefixを付ける。
